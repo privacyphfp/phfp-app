@@ -37,7 +37,7 @@ export default function EnrollButton({ offeringId, studentId, disabled, label })
       <button
         onClick={handleClick}
         disabled={disabled || loading}
-        className="rounded bg-black px-4 py-2 text-sm text-white disabled:opacity-40 dark:bg-white dark:text-black"
+        className="rounded-full bg-brand-blue px-4 py-2 text-sm font-medium text-white shadow-sm shadow-brand-blue/20 transition-colors hover:bg-brand-blue-dark disabled:bg-brand-ink/20 disabled:text-brand-ink/50 disabled:shadow-none"
       >
         {loading ? 'Enrolling…' : label}
       </button>

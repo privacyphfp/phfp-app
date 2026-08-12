@@ -21,8 +21,8 @@ export default async function AdminCoursesPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl p-8">
-      <h1 className="text-2xl font-semibold">Manage Course Offerings</h1>
+    <div className="mx-auto w-full max-w-4xl p-8">
+      <h1 className="text-2xl font-semibold text-brand-blue-dark">Manage Course Offerings</h1>
 
       <div className="mt-6">
         <CreateOfferingForm courses={courses ?? []} />
@@ -30,22 +30,22 @@ export default async function AdminCoursesPage() {
 
       <div className="mt-8 space-y-3">
         {(offerings ?? []).map((o) => (
-          <div key={o.id} className="rounded border border-zinc-200 p-4 dark:border-zinc-800">
+          <div key={o.id} className="rounded-xl border border-brand-blue/15 bg-white/60 p-4 shadow-sm dark:bg-white/5">
             <div className="flex items-baseline justify-between">
-              <span className="font-medium">{courseById[o.course_id]?.name ?? 'Unknown course'}</span>
-              <span className="text-sm text-zinc-500">
+              <span className="font-medium text-brand-ink">{courseById[o.course_id]?.name ?? 'Unknown course'}</span>
+              <span className="rounded-full bg-brand-blue/10 px-2.5 py-0.5 text-xs font-medium text-brand-blue">
                 {enrollmentCounts[o.id] ?? 0}
                 {o.capacity ? ` / ${o.capacity}` : ''} enrolled
               </span>
             </div>
-            <div className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+            <div className="mt-1 text-sm text-brand-ink/60">
               {o.start_date}
               {o.end_date && o.end_date !== o.start_date ? ` – ${o.end_date}` : ''} ·{' '}
               {o.is_online ? 'Online' : o.location || 'TBD'} · {o.price ? `₱${o.price}` : 'Free'} · {o.status}
             </div>
           </div>
         ))}
-        {!(offerings ?? []).length && <p className="text-zinc-500">No course offerings yet.</p>}
+        {!(offerings ?? []).length && <p className="text-brand-ink/50">No course offerings yet.</p>}
       </div>
     </div>
   );

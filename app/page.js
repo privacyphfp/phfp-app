@@ -3,21 +3,50 @@ import logo from "@/public/logo.png";
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-4 text-center">
-      <Image src={logo} alt="Pranic Healing Foundation of the Philippines" width={120} height={120} priority />
-      <h1 className="text-4xl font-semibold">PHFP App</h1>
-      <p className="max-w-md text-zinc-600 dark:text-zinc-400">
+    <div className="relative flex flex-1 flex-col items-center justify-center overflow-hidden px-6 py-20 text-center">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10"
+        style={{
+          background:
+            "radial-gradient(60% 50% at 50% 20%, color-mix(in srgb, var(--brand-gold) 35%, transparent) 0%, transparent 70%), radial-gradient(50% 40% at 85% 90%, color-mix(in srgb, var(--brand-blue) 18%, transparent) 0%, transparent 70%)",
+        }}
+      />
+
+      <Image
+        src={logo}
+        alt="Pranic Healing Foundation of the Philippines"
+        width={140}
+        height={140}
+        priority
+        className="drop-shadow-[0_8px_24px_rgba(240,204,96,0.45)]"
+      />
+
+      <h1 className="mt-6 text-4xl font-semibold tracking-tight text-brand-blue-dark sm:text-5xl">
+        PHFP App
+      </h1>
+      <p className="mt-4 max-w-md text-balance text-brand-ink/70">
         Pranic Healing Foundation of the Philippines — student portal, courses,
-        and events.
+        certificates, and events, all in one place.
       </p>
-      <div className="mt-2 flex gap-3">
-        <a href="/courses" className="rounded border border-zinc-300 px-4 py-2 dark:border-zinc-700">
-          Browse Courses
-        </a>
-        <a href="/signup" className="rounded bg-black px-4 py-2 text-white dark:bg-white dark:text-black">
+
+      <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+        <a
+          href="/signup"
+          className="rounded-full bg-brand-blue px-6 py-2.5 font-medium text-white shadow-md shadow-brand-blue/20 transition-colors hover:bg-brand-blue-dark"
+        >
           Sign Up
         </a>
-        <a href="/login" className="rounded border border-zinc-300 px-4 py-2 dark:border-zinc-700">
+        <a
+          href="/courses"
+          className="rounded-full border border-brand-flame/40 bg-brand-amber/20 px-6 py-2.5 font-medium text-brand-flame transition-colors hover:bg-brand-amber/35"
+        >
+          Browse Courses
+        </a>
+        <a
+          href="/login"
+          className="rounded-full border border-brand-blue/30 px-6 py-2.5 font-medium text-brand-blue transition-colors hover:bg-brand-blue/10"
+        >
           Log In
         </a>
       </div>

@@ -11,8 +11,8 @@ export default async function AdminPage() {
   ]);
 
   return (
-    <div className="mx-auto max-w-3xl p-8">
-      <h1 className="text-2xl font-semibold">Admin Dashboard</h1>
+    <div className="mx-auto w-full max-w-3xl p-8">
+      <h1 className="text-2xl font-semibold text-brand-blue-dark">Admin Dashboard</h1>
 
       <div className="mt-6 grid grid-cols-3 gap-4">
         <Stat label="Students" value={studentCount ?? 0} />
@@ -21,7 +21,10 @@ export default async function AdminPage() {
       </div>
 
       <div className="mt-8">
-        <Link href="/admin/courses" className="underline">
+        <Link
+          href="/admin/courses"
+          className="inline-flex items-center gap-1 rounded-full bg-brand-blue px-5 py-2 text-sm font-medium text-white shadow-sm shadow-brand-blue/20 transition-colors hover:bg-brand-blue-dark"
+        >
           Manage Course Offerings →
         </Link>
       </div>
@@ -31,9 +34,9 @@ export default async function AdminPage() {
 
 function Stat({ label, value }) {
   return (
-    <div className="rounded border border-zinc-200 p-4 dark:border-zinc-800">
-      <div className="text-3xl font-semibold">{value}</div>
-      <div className="text-sm text-zinc-500">{label}</div>
+    <div className="rounded-xl border border-brand-gold/40 bg-brand-amber/5 p-4">
+      <div className="text-3xl font-semibold text-brand-blue-dark">{value}</div>
+      <div className="text-sm text-brand-ink/60">{label}</div>
     </div>
   );
 }
