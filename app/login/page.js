@@ -18,26 +18,29 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
 
-    const supabase = createClient();
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-    if (error) {
+      if (error) {
+        setError(error.message);
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single();
+
+      const role = profile?.role ?? 'student';
+      router.push(DASHBOARD_ROLES.includes(role) ? `/${role}` : '/student');
+      router.refresh();
+    } catch (err) {
+      setError(err.message ?? 'Something went wrong. Please try again.');
+    } finally {
       setLoading(false);
-      setError(error.message);
-      return;
     }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', data.user.id)
-      .single();
-
-    setLoading(false);
-
-    const role = profile?.role ?? 'student';
-    router.push(DASHBOARD_ROLES.includes(role) ? `/${role}` : '/student');
-    router.refresh();
   }
 
   return (
