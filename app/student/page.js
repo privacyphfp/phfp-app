@@ -1,9 +1,11 @@
+import Link from 'next/link';
 import { requireProfile } from '@/lib/auth';
 import { computeEligibility } from '@/lib/eligibility';
 import EnrollButton from './EnrollButton';
 
 export default async function StudentPage() {
-  const { supabase, user, profile } = await requireProfile(['student', 'volunteer']);
+  const { supabase, user, profile } = await requireProfile(['student', 'volunteer', 'admin']);
+  const isPreview = profile?.role !== 'student' && profile?.role !== 'volunteer';
 
   const [{ data: courses }, { data: prereqs }, { data: offerings }, { data: myEnrollments }] = await Promise.all([
     supabase.from('courses').select('id, name'),
@@ -34,6 +36,14 @@ export default async function StudentPage() {
 
   return (
     <div className="mx-auto w-full max-w-3xl p-8">
+      {isPreview && (
+        <div className="mb-6 flex items-center justify-between rounded-full border border-brand-flame/30 bg-brand-amber/15 px-4 py-2 text-sm text-brand-flame">
+          <span>Previewing the Student portal as {profile?.role}</span>
+          <Link href="/admin" className="font-medium underline underline-offset-2">
+            ← Back to Admin
+          </Link>
+        </div>
+      )}
       <h1 className="text-2xl font-semibold text-brand-blue-dark">
         Welcome, {profile?.full_name || 'Student'}
       </h1>
