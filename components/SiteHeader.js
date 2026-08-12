@@ -16,6 +16,9 @@ export default function SiteHeader() {
           <Link href="/courses" className="text-brand-ink/70 transition-colors hover:text-brand-blue">
             Courses
           </Link>
+          <Link href="/calendar" className="text-brand-ink/70 transition-colors hover:text-brand-blue">
+            Calendar
+          </Link>
           <Link href="/login" className="text-brand-ink/70 transition-colors hover:text-brand-blue">
             Log In
           </Link>

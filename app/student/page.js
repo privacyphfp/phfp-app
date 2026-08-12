@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { requireProfile } from '@/lib/auth';
 import { computeEligibility } from '@/lib/eligibility';
-import EnrollButton from './EnrollButton';
+import EnrollButton from '@/components/EnrollButton';
 
 export default async function StudentPage() {
   const { supabase, user, profile } = await requireProfile(['student', 'volunteer', 'admin']);
@@ -44,9 +44,19 @@ export default async function StudentPage() {
           </Link>
         </div>
       )}
-      <h1 className="text-2xl font-semibold text-brand-blue-dark">
-        Welcome, {profile?.full_name || 'Student'}
-      </h1>
+      <div className="flex items-baseline justify-between">
+        <h1 className="text-2xl font-semibold text-brand-blue-dark">
+          Welcome, {profile?.full_name || 'Student'}
+        </h1>
+        <div className="flex gap-4 text-sm font-medium">
+          <Link href="/calendar" className="text-brand-blue hover:underline">
+            Calendar
+          </Link>
+          <Link href="/student/profile" className="text-brand-blue hover:underline">
+            Edit Profile
+          </Link>
+        </div>
+      </div>
 
       <section className="mt-8">
         <h2 className="text-xl font-semibold text-brand-ink/90">My Enrollments</h2>
@@ -76,7 +86,9 @@ export default async function StudentPage() {
                 className="rounded-xl border border-brand-gold/40 bg-brand-amber/5 p-4 shadow-sm"
               >
                 <div className="flex items-baseline justify-between">
-                  <span className="font-medium text-brand-ink">{o.courses?.name}</span>
+                  <Link href={`/courses/${o.course_id}`} className="font-medium text-brand-ink hover:underline">
+                    {o.courses?.name}
+                  </Link>
                   <span className="text-sm text-brand-ink/50">{o.start_date}</span>
                 </div>
                 <div className="mt-1 text-sm text-brand-ink/60">
