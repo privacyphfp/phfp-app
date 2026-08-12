@@ -1,6 +1,7 @@
-import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { SERIES_LABELS, SERIES_ACCENTS, SERIES_ORDER } from '@/lib/courseSeries';
+import { SERIES_LABELS, SERIES_ORDER, SERIES_PATH_STYLE } from '@/lib/courseSeries';
+import { buildCoursePath } from '@/lib/coursePath';
+import { CourseBox, PathChain } from '@/components/CoursePathNode';
 
 export default async function CoursesPage() {
   const supabase = await createClient();
@@ -10,49 +11,96 @@ export default async function CoursesPage() {
     supabase.from('course_prerequisites').select('course_id, prerequisite_course_id'),
   ]);
 
-  const courseById = Object.fromEntries((courses ?? []).map((c) => [c.id, c]));
+  const { foundational, healingPath, arhaticPath, branchesByAnchor, other, prereqIdsOf, courseById } =
+    buildCoursePath(courses ?? [], prereqs ?? []);
 
-  const prereqNamesByCourse = {};
-  for (const p of prereqs ?? []) {
-    (prereqNamesByCourse[p.course_id] ??= []).push(courseById[p.prerequisite_course_id]?.name);
-  }
-
-  const grouped = {};
-  for (const c of courses ?? []) {
-    (grouped[c.series] ??= []).push(c);
-  }
+  const chainProps = { branchesByAnchor, prereqIdsOf, courseById };
 
   return (
-    <div className="mx-auto w-full max-w-3xl p-8">
-      <h1 className="text-3xl font-semibold text-brand-blue-dark">Course Catalog</h1>
+    <div className="mx-auto w-full max-w-7xl p-6 sm:p-8">
+      <div className="text-center">
+        <h1 className="text-3xl font-bold text-brand-blue-dark sm:text-4xl">Course Catalog</h1>
+        <p className="mt-1 text-brand-ink/60">Course Path &amp; Next Steps</p>
+      </div>
 
-      {SERIES_ORDER.filter((series) => grouped[series]?.length).map((series) => (
-        <section key={series} className="mt-10">
-          <h2 className="text-xl font-semibold text-brand-ink/90">{SERIES_LABELS[series]}</h2>
-          <ul className="mt-4 space-y-3">
-            {grouped[series].map((course) => (
-              <li key={course.id}>
-                <Link
-                  href={`/courses/${course.id}`}
-                  className={`block rounded-xl border p-4 shadow-sm transition-shadow hover:shadow-md ${SERIES_ACCENTS[series]}`}
-                >
-                  <div className="flex items-baseline justify-between gap-4">
-                    <span className="font-medium text-brand-ink">{course.name}</span>
-                    <span className="shrink-0 rounded-full bg-white/60 px-2.5 py-0.5 text-xs font-medium">
-                      {course.duration_days} day{course.duration_days > 1 ? 's' : ''}
-                    </span>
-                  </div>
-                  {prereqNamesByCourse[course.id]?.length > 0 && (
-                    <p className="mt-1.5 text-sm text-brand-ink/60">
-                      Requires: {prereqNamesByCourse[course.id].join(', ')}
-                    </p>
-                  )}
-                </Link>
-              </li>
+      <div className="mt-10 grid grid-cols-1 gap-8 lg:grid-cols-[220px_1fr_1fr_260px] lg:items-start">
+        <section>
+          <div className="rounded-full bg-brand-indigo px-4 py-1.5 text-center text-sm font-semibold text-white">
+            Foundational Courses
+          </div>
+          <p className="mt-2 text-center text-xs text-brand-ink/50">Build your spiritual foundation</p>
+          <div className="mt-4 flex flex-col gap-3">
+            {foundational.map((c) => (
+              <CourseBox key={c.id} course={c} />
             ))}
-          </ul>
+          </div>
         </section>
-      ))}
+
+        <section>
+          <div className="rounded-full bg-brand-blue px-4 py-1.5 text-center text-sm font-semibold text-white">
+            Core Healing Path
+          </div>
+          <p className="mt-2 text-center text-xs text-brand-ink/50">Recommended order</p>
+          <div className="mt-4">
+            <PathChain chain={healingPath} {...chainProps} />
+          </div>
+        </section>
+
+        <section>
+          <div className="rounded-full bg-brand-flame px-4 py-1.5 text-center text-sm font-semibold text-white">
+            Arhatic Yoga Path
+          </div>
+          <p className="mt-2 text-center text-xs text-brand-ink/50">Advanced order</p>
+          <div className="mt-4">
+            <PathChain chain={arhaticPath} {...chainProps} />
+          </div>
+        </section>
+
+        <aside className="flex flex-col gap-6">
+          <div className="rounded-xl border border-brand-blue-dark/20 bg-brand-blue/5 p-4">
+            <h3 className="rounded-full bg-brand-blue-dark px-3 py-1 text-center text-xs font-semibold text-white">
+              What&apos;s Next
+            </h3>
+            <ol className="mt-3 list-decimal space-y-2 pl-4 text-sm text-brand-ink/70">
+              {healingPath[0] && <li>Start with {healingPath[0].name}</li>}
+              {arhaticPath[0] && <li>{arhaticPath[0].name} can be taken before or after that</li>}
+              <li>Follow the core healing path in order</li>
+              <li>Complete the healing path to unlock the Arhatic Yoga path</li>
+              <li>Advance through the Arhatic Yoga path in order</li>
+              <li>Take all courses to deepen your mastery and serve others</li>
+            </ol>
+          </div>
+          <div className="rounded-xl border border-brand-blue-dark/20 bg-brand-blue/5 p-4">
+            <h3 className="rounded-full bg-brand-blue-dark px-3 py-1 text-center text-xs font-semibold text-white">
+              Notes
+            </h3>
+            <ul className="mt-3 list-disc space-y-1 pl-4 text-sm text-brand-ink/70">
+              <li>Prerequisite = the previous course in that path</li>
+              <li>Foundational courses can be taken anytime</li>
+            </ul>
+          </div>
+        </aside>
+      </div>
+
+      <div className="mt-10 flex flex-wrap items-center justify-center gap-3 border-t border-brand-ink/10 pt-6">
+        <span className="text-xs font-semibold tracking-wide text-brand-ink/40 uppercase">Legend</span>
+        {SERIES_ORDER.map((s) => (
+          <span key={s} className={`rounded-full px-3 py-1 text-xs font-medium ${SERIES_PATH_STYLE[s]}`}>
+            {SERIES_LABELS[s]}
+          </span>
+        ))}
+      </div>
+
+      {other.length > 0 && (
+        <section className="mt-10">
+          <h2 className="text-lg font-semibold text-brand-ink/80">Other Courses</h2>
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {other.map((c) => (
+              <CourseBox key={c.id} course={c} />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
