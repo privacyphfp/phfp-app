@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { SERIES_LABELS, SERIES_ORDER, SERIES_PATH_STYLE } from '@/lib/courseSeries';
 import { buildCoursePath } from '@/lib/coursePath';
-import { CourseBox, PathChain } from '@/components/CoursePathNode';
+import { CourseBox } from '@/components/CoursePathNode';
+import CoursePathDiagram from '@/components/CoursePathDiagram';
 
 export default async function CoursesPage() {
   const supabase = await createClient();
@@ -11,10 +12,17 @@ export default async function CoursesPage() {
     supabase.from('course_prerequisites').select('course_id, prerequisite_course_id'),
   ]);
 
-  const { foundational, healingPath, arhaticPath, branchesByAnchor, other, prereqIdsOf, courseById } =
-    buildCoursePath(courses ?? [], prereqs ?? []);
-
-  const chainProps = { branchesByAnchor, prereqIdsOf, courseById };
+  const {
+    foundational,
+    healingPath,
+    arhaticPath,
+    branchesByAnchor,
+    other,
+    prereqIdsOf,
+    courseById,
+    crossLink,
+    codeVisibleIds,
+  } = buildCoursePath(courses ?? [], prereqs ?? []);
 
   return (
     <div className="mx-auto w-full max-w-7xl p-6 sm:p-8">
@@ -23,38 +31,17 @@ export default async function CoursesPage() {
         <p className="mt-1 text-brand-ink/60">Course Path &amp; Next Steps</p>
       </div>
 
-      <div className="mt-10 grid grid-cols-1 gap-8 lg:grid-cols-[220px_1fr_1fr_260px] lg:items-start">
-        <section>
-          <div className="rounded-full bg-brand-indigo px-4 py-1.5 text-center text-sm font-semibold text-white">
-            Foundational Courses
-          </div>
-          <p className="mt-2 text-center text-xs text-brand-ink/50">Build your spiritual foundation</p>
-          <div className="mt-4 flex flex-col gap-3">
-            {foundational.map((c) => (
-              <CourseBox key={c.id} course={c} />
-            ))}
-          </div>
-        </section>
-
-        <section>
-          <div className="rounded-full bg-brand-blue px-4 py-1.5 text-center text-sm font-semibold text-white">
-            Core Healing Path
-          </div>
-          <p className="mt-2 text-center text-xs text-brand-ink/50">Recommended order</p>
-          <div className="mt-4">
-            <PathChain chain={healingPath} {...chainProps} />
-          </div>
-        </section>
-
-        <section>
-          <div className="rounded-full bg-brand-flame px-4 py-1.5 text-center text-sm font-semibold text-white">
-            Arhatic Yoga Path
-          </div>
-          <p className="mt-2 text-center text-xs text-brand-ink/50">Advanced order</p>
-          <div className="mt-4">
-            <PathChain chain={arhaticPath} {...chainProps} />
-          </div>
-        </section>
+      <div className="mt-10 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_260px] lg:items-start">
+        <CoursePathDiagram
+          foundational={foundational}
+          healingPath={healingPath}
+          arhaticPath={arhaticPath}
+          branchesByAnchor={branchesByAnchor}
+          prereqIdsOf={prereqIdsOf}
+          courseById={courseById}
+          crossLink={crossLink}
+          codeVisibleIds={codeVisibleIds}
+        />
 
         <aside className="flex flex-col gap-6">
           <div className="rounded-xl border border-brand-blue-dark/20 bg-brand-blue/5 p-4">
