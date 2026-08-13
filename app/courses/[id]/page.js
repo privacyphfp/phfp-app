@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { SERIES_LABELS } from '@/lib/courseSeries';
+import { isProfileComplete } from '@/lib/profileCompleteness';
 import EnrollButton from '@/components/EnrollButton';
 
 export default async function CourseDetailPage({ params }) {
@@ -39,12 +40,16 @@ export default async function CourseDetailPage({ params }) {
 
   let completedCourseIds = new Set();
   let enrolledOfferingIds = new Set();
+  let profileComplete = false;
 
   if (user) {
-    const { data: myEnrollments } = await supabase
-      .from('enrollments')
-      .select('status, course_offering_id, course_offerings(course_id)')
-      .eq('student_id', user.id);
+    const [{ data: myEnrollments }, { data: myProfile }] = await Promise.all([
+      supabase
+        .from('enrollments')
+        .select('status, course_offering_id, course_offerings(course_id)')
+        .eq('student_id', user.id),
+      supabase.from('profiles').select('*').eq('id', user.id).single(),
+    ]);
 
     completedCourseIds = new Set(
       (myEnrollments ?? [])
@@ -52,6 +57,7 @@ export default async function CourseDetailPage({ params }) {
         .map((e) => e.course_offerings?.course_id)
     );
     enrolledOfferingIds = new Set((myEnrollments ?? []).map((e) => e.course_offering_id));
+    profileComplete = isProfileComplete(myProfile);
   }
 
   const missingPrereqs = requiredCourseIds
@@ -102,12 +108,21 @@ export default async function CourseDetailPage({ params }) {
               </div>
               <div className="mt-1 text-sm text-brand-ink/60">{o.is_online ? 'Online' : o.location || 'TBD'}</div>
               {!eligible && <p className="mt-2 text-sm text-brand-flame">Requires: {missingPrereqs.join(', ')}</p>}
+              {user && !alreadyEnrolled && eligible && !profileComplete && (
+                <p className="mt-2 text-sm text-brand-flame">
+                  Please{' '}
+                  <Link href="/student/profile" className="underline underline-offset-2">
+                    complete your profile
+                  </Link>{' '}
+                  before enrolling.
+                </p>
+              )}
               <div className="mt-3">
                 {user ? (
                   <EnrollButton
                     offeringId={o.id}
                     studentId={user.id}
-                    disabled={alreadyEnrolled || !eligible}
+                    disabled={alreadyEnrolled || !eligible || !profileComplete}
                     label={alreadyEnrolled ? 'Enrolled' : 'Enroll'}
                   />
                 ) : (

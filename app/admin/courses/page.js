@@ -1,5 +1,6 @@
 import { requireProfile } from '@/lib/auth';
 import CreateOfferingForm from './CreateOfferingForm';
+import ExportEnrollmentsButton from '@/components/ExportEnrollmentsButton';
 
 export default async function AdminCoursesPage() {
   const { supabase } = await requireProfile(['admin']);
@@ -43,6 +44,14 @@ export default async function AdminCoursesPage() {
               {o.end_date && o.end_date !== o.start_date ? ` – ${o.end_date}` : ''} ·{' '}
               {o.is_online ? 'Online' : o.location || 'TBD'} · {o.price ? `₱${o.price}` : 'Free'} · {o.status}
             </div>
+            {(enrollmentCounts[o.id] ?? 0) > 0 && (
+              <div className="mt-3">
+                <ExportEnrollmentsButton
+                  offeringId={o.id}
+                  fileName={`${courseById[o.course_id]?.code ?? 'course'}-${o.start_date}-roster`}
+                />
+              </div>
+            )}
           </div>
         ))}
         {!(offerings ?? []).length && <p className="text-brand-ink/50">No course offerings yet.</p>}

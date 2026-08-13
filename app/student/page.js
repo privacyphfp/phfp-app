@@ -1,11 +1,13 @@
 import Link from 'next/link';
 import { requireProfile } from '@/lib/auth';
 import { computeEligibility } from '@/lib/eligibility';
+import { isProfileComplete } from '@/lib/profileCompleteness';
 import EnrollButton from '@/components/EnrollButton';
 
 export default async function StudentPage() {
   const { supabase, user, profile } = await requireProfile(['student', 'volunteer', 'admin']);
   const isPreview = profile?.role !== 'student' && profile?.role !== 'volunteer';
+  const profileComplete = isProfileComplete(profile);
 
   const [{ data: courses }, { data: prereqs }, { data: offerings }, { data: myEnrollments }] = await Promise.all([
     supabase.from('courses').select('id, name'),
@@ -41,6 +43,14 @@ export default async function StudentPage() {
           <span>Previewing the Student portal as {profile?.role}</span>
           <Link href="/admin" className="font-medium underline underline-offset-2">
             ← Back to Admin
+          </Link>
+        </div>
+      )}
+      {!profileComplete && (
+        <div className="mb-6 flex items-center justify-between rounded-full border border-brand-flame/30 bg-brand-amber/15 px-4 py-2 text-sm text-brand-flame">
+          <span>Complete your profile to be able to enroll in courses.</span>
+          <Link href="/student/profile" className="font-medium underline underline-offset-2">
+            Complete profile →
           </Link>
         </div>
       )}
@@ -97,11 +107,20 @@ export default async function StudentPage() {
                 {!elig.eligible && (
                   <p className="mt-2 text-sm text-brand-flame">Requires: {elig.missing.join(', ')}</p>
                 )}
+                {!alreadyEnrolled && elig.eligible && !profileComplete && (
+                  <p className="mt-2 text-sm text-brand-flame">
+                    Please{' '}
+                    <Link href="/student/profile" className="underline underline-offset-2">
+                      complete your profile
+                    </Link>{' '}
+                    before enrolling.
+                  </p>
+                )}
                 <div className="mt-3">
                   <EnrollButton
                     offeringId={o.id}
                     studentId={user.id}
-                    disabled={alreadyEnrolled || !elig.eligible}
+                    disabled={alreadyEnrolled || !elig.eligible || !profileComplete}
                     label={alreadyEnrolled ? 'Enrolled' : 'Enroll'}
                   />
                 </div>
