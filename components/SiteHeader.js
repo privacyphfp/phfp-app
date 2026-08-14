@@ -29,7 +29,7 @@ export default async function SiteHeader() {
     : null;
 
   return (
-    <header className="relative border-b border-brand-gold/40 bg-brand-cream/80 backdrop-blur supports-[backdrop-filter]:bg-brand-cream/60">
+    <header className="relative z-50 border-b border-brand-gold/40 bg-brand-cream/80 backdrop-blur supports-[backdrop-filter]:bg-brand-cream/60">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
         <Link href="/" className="flex items-center gap-2.5">
           <Image src={logo} alt="PHFP" width={36} height={36} className="rounded-full" />
