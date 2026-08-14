@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { SERIES_LABELS, SERIES_ORDER, SERIES_PATH_STYLE } from '@/lib/courseSeries';
 import { buildCoursePath } from '@/lib/coursePath';
@@ -27,8 +28,16 @@ export default async function CoursesPage() {
   return (
     <div className="mx-auto w-full max-w-7xl p-6 sm:p-8">
       <div className="text-center">
-        <h1 className="text-3xl font-bold text-brand-blue-dark sm:text-4xl">Course Catalog</h1>
-        <p className="mt-1 text-brand-ink/60">Course Path &amp; Next Steps</p>
+        <h1 className="text-3xl font-bold text-brand-blue-dark sm:text-4xl">Pranic Healing and Arhatic Yoga</h1>
+        <p className="mt-1 text-2xl font-semibold text-brand-blue sm:text-3xl">Course Path &amp; Next Steps</p>
+        <p className="mx-auto mt-3 max-w-xl text-sm text-brand-ink/60">
+          Click a course below to learn more and see if there&apos;s an available schedule. You can also check
+          course availability on the{' '}
+          <Link href="/calendar" className="text-brand-blue underline underline-offset-2 hover:text-brand-blue-dark">
+            calendar
+          </Link>
+          .
+        </p>
       </div>
 
       <div className="mt-10 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_260px] lg:items-start">
