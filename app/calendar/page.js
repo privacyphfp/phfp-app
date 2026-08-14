@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { SERIES_HEX } from '@/lib/courseSeries';
-import CalendarView from '@/components/CalendarView';
+import CalendarFilterView from '@/components/CalendarFilterView';
+
+const EVENT_COLOR = '#c0600c';
 
 function exclusiveEnd(dateStr) {
   const d = new Date(dateStr + 'T00:00:00Z');
@@ -11,10 +13,14 @@ function exclusiveEnd(dateStr) {
 export default async function CalendarPage() {
   const supabase = await createClient();
 
-  const { data: offerings } = await supabase
-    .from('course_offerings')
-    .select('id, start_date, end_date, course_id, courses(name, series)')
-    .order('start_date');
+  const [{ data: offerings }, { data: events }, { data: regions }] = await Promise.all([
+    supabase
+      .from('course_offerings')
+      .select('id, start_date, end_date, course_id, region_id, courses(name, series)')
+      .order('start_date'),
+    supabase.from('events').select('id, title, start_date, end_date, region_id').order('start_date'),
+    supabase.from('regions').select('id, name').order('name'),
+  ]);
 
   const {
     data: { user },
@@ -29,12 +35,20 @@ export default async function CalendarPage() {
     enrolledOfferingIds = new Set((myEnrollments ?? []).map((e) => e.course_offering_id));
   }
 
-  const events = (offerings ?? []).map((o) => ({
+  const offeringItems = (offerings ?? []).map((o) => ({
     title: `${o.courses?.name ?? 'Course'}${enrolledOfferingIds.has(o.id) ? ' ✓' : ''}`,
     start: o.start_date,
     end: exclusiveEnd(o.end_date || o.start_date),
     color: SERIES_HEX[o.courses?.series] ?? '#00549c',
-    extendedProps: { href: `/courses/${o.course_id}` },
+    extendedProps: { href: `/courses/${o.course_id}`, regionId: o.region_id ?? null },
+  }));
+
+  const eventItems = (events ?? []).map((ev) => ({
+    title: `📅 ${ev.title}`,
+    start: ev.start_date,
+    end: exclusiveEnd(ev.end_date || ev.start_date),
+    color: EVENT_COLOR,
+    extendedProps: { href: null, regionId: ev.region_id ?? null },
   }));
 
   return (
@@ -44,7 +58,7 @@ export default async function CalendarPage() {
         All scheduled courses and events. {user && 'Your enrollments are marked with a ✓.'}
       </p>
       <div className="mt-6">
-        <CalendarView events={events} />
+        <CalendarFilterView items={[...offeringItems, ...eventItems]} regions={regions ?? []} />
       </div>
     </div>
   );

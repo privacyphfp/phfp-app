@@ -14,7 +14,7 @@ export default async function AdminPage() {
     <div className="mx-auto w-full max-w-3xl p-8">
       <h1 className="text-2xl font-semibold text-brand-blue-dark">Admin Dashboard</h1>
 
-      <div className="mt-6 grid grid-cols-3 gap-4">
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Stat label="Students" value={studentCount ?? 0} />
         <Stat label="Course Offerings" value={offeringCount ?? 0} />
         <Stat label="Pending Enrollments" value={pendingCount ?? 0} />
@@ -26,6 +26,12 @@ export default async function AdminPage() {
           className="inline-flex items-center gap-1 rounded-full bg-brand-blue px-5 py-2 text-sm font-medium text-white shadow-sm shadow-brand-blue/20 transition-colors hover:bg-brand-blue-dark"
         >
           Manage Course Offerings →
+        </Link>
+        <Link
+          href="/admin/students"
+          className="inline-flex items-center gap-1 rounded-full bg-brand-blue px-5 py-2 text-sm font-medium text-white shadow-sm shadow-brand-blue/20 transition-colors hover:bg-brand-blue-dark"
+        >
+          Manage Students →
         </Link>
         <Link
           href="/student"

@@ -4,9 +4,21 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
-export default function CreateOfferingForm({ courses }) {
+const EVENT_TYPES = [
+  { value: 'one_time', label: 'One-time' },
+  { value: 'special', label: 'Special event' },
+  { value: 'weekly', label: 'Weekly event' },
+];
+
+export default function CreateOfferingForm({ courses, regions }) {
   const router = useRouter();
+  const [type, setType] = useState('offering'); // 'offering' | 'event'
+
   const [courseId, setCourseId] = useState(courses[0]?.id ?? '');
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [eventType, setEventType] = useState('one_time');
+  const [regionId, setRegionId] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [location, setLocation] = useState('');
@@ -16,6 +28,16 @@ export default function CreateOfferingForm({ courses }) {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  function resetCommon() {
+    setStartDate('');
+    setEndDate('');
+    setLocation('');
+    setCapacity('');
+    setPrice('');
+    setTitle('');
+    setDescription('');
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError(null);
@@ -23,26 +45,41 @@ export default function CreateOfferingForm({ courses }) {
 
     try {
       const supabase = createClient();
-      const { error } = await supabase.from('course_offerings').insert({
-        course_id: courseId,
-        start_date: startDate,
-        end_date: endDate || null,
-        location: location || null,
-        is_online: isOnline,
-        capacity: capacity ? Number(capacity) : null,
-        price: price ? Number(price) : null,
-      });
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      const { error } =
+        type === 'offering'
+          ? await supabase.from('course_offerings').insert({
+              course_id: courseId,
+              start_date: startDate,
+              end_date: endDate || null,
+              location: location || null,
+              is_online: isOnline,
+              capacity: capacity ? Number(capacity) : null,
+              price: price ? Number(price) : null,
+              region_id: regionId || null,
+              created_by: user?.id ?? null,
+            })
+          : await supabase.from('events').insert({
+              title,
+              description: description || null,
+              event_type: eventType,
+              start_date: startDate,
+              end_date: endDate || null,
+              location: location || null,
+              is_online: isOnline,
+              region_id: regionId || null,
+              created_by: user?.id ?? null,
+            });
 
       if (error) {
         setError(error.message);
         return;
       }
 
-      setStartDate('');
-      setEndDate('');
-      setLocation('');
-      setCapacity('');
-      setPrice('');
+      resetCommon();
       router.refresh();
     } catch (err) {
       setError(err.message ?? 'Something went wrong. Please try again.');
@@ -59,19 +96,77 @@ export default function CreateOfferingForm({ courses }) {
       onSubmit={handleSubmit}
       className="space-y-3 rounded-xl border border-brand-gold/40 bg-brand-amber/5 p-5"
     >
-      <h2 className="font-medium text-brand-blue-dark">Schedule a New Offering</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="font-medium text-brand-blue-dark">
+          {type === 'offering' ? 'Schedule a New Offering' : 'Add a New Event'}
+        </h2>
+        <div className="flex gap-1 rounded-full border border-brand-blue/20 p-0.5 text-xs font-medium">
+          <button
+            type="button"
+            onClick={() => setType('offering')}
+            className={`rounded-full px-3 py-1 transition-colors ${type === 'offering' ? 'bg-brand-blue text-white' : 'text-brand-ink/60'}`}
+          >
+            Course Offering
+          </button>
+          <button
+            type="button"
+            onClick={() => setType('event')}
+            className={`rounded-full px-3 py-1 transition-colors ${type === 'event' ? 'bg-brand-blue text-white' : 'text-brand-ink/60'}`}
+          >
+            Event
+          </button>
+        </div>
+      </div>
+
       {error && <p className="text-sm text-red-600">{error}</p>}
-      <div className="grid grid-cols-2 gap-3">
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {type === 'offering' ? (
+          <label className="text-sm text-brand-ink/80">
+            Course
+            <select value={courseId} onChange={(e) => setCourseId(e.target.value)} className={inputClass}>
+              {courses.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <>
+            <label className="text-sm text-brand-ink/80">
+              Title
+              <input required value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} />
+            </label>
+            <label className="text-sm text-brand-ink/80">
+              Event Type
+              <select value={eventType} onChange={(e) => setEventType(e.target.value)} className={inputClass}>
+                {EVENT_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="col-span-2 text-sm text-brand-ink/80">
+              Description
+              <input value={description} onChange={(e) => setDescription(e.target.value)} className={inputClass} />
+            </label>
+          </>
+        )}
+
         <label className="text-sm text-brand-ink/80">
-          Course
-          <select value={courseId} onChange={(e) => setCourseId(e.target.value)} className={inputClass}>
-            {courses.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
+          Region
+          <select value={regionId} onChange={(e) => setRegionId(e.target.value)} className={inputClass}>
+            <option value="">Nationwide</option>
+            {regions.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
               </option>
             ))}
           </select>
         </label>
+
         <label className="text-sm text-brand-ink/80">
           Start Date
           <input
@@ -104,34 +199,40 @@ export default function CreateOfferingForm({ courses }) {
           />
           Online
         </label>
-        <label className="text-sm text-brand-ink/80">
-          Capacity
-          <input
-            type="number"
-            min="1"
-            value={capacity}
-            onChange={(e) => setCapacity(e.target.value)}
-            className={inputClass}
-          />
-        </label>
-        <label className="text-sm text-brand-ink/80">
-          Price (₱)
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            className={inputClass}
-          />
-        </label>
+
+        {type === 'offering' && (
+          <>
+            <label className="text-sm text-brand-ink/80">
+              Capacity
+              <input
+                type="number"
+                min="1"
+                value={capacity}
+                onChange={(e) => setCapacity(e.target.value)}
+                className={inputClass}
+              />
+            </label>
+            <label className="text-sm text-brand-ink/80">
+              Price (₱)
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                className={inputClass}
+              />
+            </label>
+          </>
+        )}
       </div>
+
       <button
         type="submit"
         disabled={loading}
         className="rounded-full bg-brand-blue px-5 py-2 font-medium text-white shadow-sm shadow-brand-blue/20 transition-colors hover:bg-brand-blue-dark disabled:opacity-50"
       >
-        {loading ? 'Saving…' : 'Create Offering'}
+        {loading ? 'Saving…' : type === 'offering' ? 'Create Offering' : 'Create Event'}
       </button>
     </form>
   );
