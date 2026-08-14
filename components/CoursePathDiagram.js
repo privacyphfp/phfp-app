@@ -134,7 +134,7 @@ export default function CoursePathDiagram({
       </section>
 
       <section>
-        <div className="grid grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-8">
           <div className="rounded-full bg-brand-blue px-4 py-1.5 text-center text-sm font-semibold text-white">
             Core Healing Path
           </div>
