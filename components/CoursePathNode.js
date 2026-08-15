@@ -5,7 +5,7 @@ import { SERIES_PATH_STYLE } from '@/lib/courseSeries';
 // visual language: a thin line into a small filled triangle head.
 export const ARROW_COLOR = 'text-brand-ink/35';
 
-export function CourseBox({ course, prereqNames, badge, showCode, compactCode }) {
+export function CourseBox({ course, prereqNames, badge, showCode }) {
   return (
     <Link
       href={`/courses/${course.id}`}
@@ -22,10 +22,6 @@ export function CourseBox({ course, prereqNames, badge, showCode, compactCode })
       </div>
       <div className="mt-0.5 text-xs text-brand-ink/50">
         {course.duration_days} day{course.duration_days > 1 ? 's' : ''}
-        {/* Appended to this already-short line instead of the name line, so
-            adding a code can't push the name onto an extra line and grow
-            the box — which would shift where fixed-position arrows land. */}
-        {compactCode && course.code && ` · ${course.code}`}
       </div>
       {prereqNames?.length > 0 && (
         <div className="mt-1 text-[11px] text-brand-ink/40">Requires: {prereqNames.join(', ')}</div>

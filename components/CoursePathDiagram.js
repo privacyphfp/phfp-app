@@ -6,10 +6,7 @@ import { BOX_WIDTH, buildEdges, computeDefaultPositions, resolveFixedEdgeOverrid
 
 const FOUNDATIONAL_KEY = '__foundational__';
 
-// Shown compactly on the duration line (rather than after the name) so
-// adding them can't grow these boxes and shift the fixed-position arrows
-// tuned against their current size.
-const COMPACT_CODE_COURSES = new Set(['PSD', 'PCH', 'SBM', 'PFS', 'KRIYA']);
+const EXTRA_CODE_COURSES = new Set(['PSD', 'PCH', 'SBM', 'PFS', 'KRIYA']);
 
 // Renders the Core Healing Path and Arhatic Yoga Path on a canvas at their
 // final (hand-placed, now static) positions, plus the Foundational Courses
@@ -166,7 +163,12 @@ export default function CoursePathDiagram({
               const isChainMember = healingPath.some((c) => c.id === course.id) || arhaticPath.some((c) => c.id === course.id);
               const prereqIds = prereqIdsOf[course.id] ?? [];
               const showPrereqs = isChainMember ? prereqIds.length > 1 : prereqIds.length > 0;
-              const prereqNames = showPrereqs ? prereqIds.map((id) => courseById[id]?.name).filter(Boolean) : [];
+              // Codes read more compactly than full names here — also
+              // reclaims exactly the line the inline "(CODE)" on the name
+              // costs on the two boxes that would otherwise wrap and grow.
+              const prereqNames = showPrereqs
+                ? prereqIds.map((id) => courseById[id]?.code || courseById[id]?.name).filter(Boolean)
+                : [];
 
               return (
                 <div
@@ -181,8 +183,7 @@ export default function CoursePathDiagram({
                     course={course}
                     prereqNames={prereqNames}
                     badge={isRoot ? 'Start here' : undefined}
-                    showCode={codeVisibleIds?.has(course.id)}
-                    compactCode={COMPACT_CODE_COURSES.has(course.code)}
+                    showCode={codeVisibleIds?.has(course.id) || EXTRA_CODE_COURSES.has(course.code)}
                   />
                 </div>
               );
