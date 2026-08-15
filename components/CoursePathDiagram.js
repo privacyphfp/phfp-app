@@ -6,6 +6,11 @@ import { BOX_WIDTH, buildEdges, computeDefaultPositions, resolveFixedEdgeOverrid
 
 const FOUNDATIONAL_KEY = '__foundational__';
 
+// Shown compactly on the duration line (rather than after the name) so
+// adding them can't grow these boxes and shift the fixed-position arrows
+// tuned against their current size.
+const COMPACT_CODE_COURSES = new Set(['PSD', 'PCH', 'SBM', 'PFS', 'KRIYA']);
+
 // Renders the Core Healing Path and Arhatic Yoga Path on a canvas at their
 // final (hand-placed, now static) positions, plus the Foundational Courses
 // box. Arrows are still measured from the real rendered DOM boxes rather
@@ -72,6 +77,14 @@ export default function CoursePathDiagram({
       // outer wrapper instead — otherwise its arrowhead gets clipped by
       // the canvas's overflow-x-auto.
       const isOuterEdge = edge.from === FOUNDATIONAL_KEY || edge.to === FOUNDATIONAL_KEY;
+
+      // Below the lg: breakpoint the Foundational box stacks ABOVE the
+      // canvas instead of beside it, so a straight "BPH -> Foundational"
+      // connector would draw a nonsensical line up through the path
+      // headers. Just skip it there — the Foundational box is directly
+      // visible above the canvas already, no arrow needed to find it.
+      if (isOuterEdge && window.innerWidth < 1024) continue;
+
       const origin = isOuterEdge ? oc : c;
 
       const fRect = rectOf(edge.from, origin);
@@ -143,7 +156,9 @@ export default function CoursePathDiagram({
           </div>
         </div>
 
-        <div className="mt-4 overflow-x-auto">
+        <p className="mt-3 text-center text-xs text-brand-ink/40 lg:hidden">↔ Swipe sideways to see the full path</p>
+
+        <div className="mt-2 overflow-x-auto lg:mt-4">
           <div ref={containerRef} className="relative" style={{ width: canvasWidth, height: canvasHeight, minWidth: '100%' }}>
             {canvasCourses.map((course) => {
               const pos = positions[course.id] ?? { x: 0, y: 0 };
@@ -167,6 +182,7 @@ export default function CoursePathDiagram({
                     prereqNames={prereqNames}
                     badge={isRoot ? 'Start here' : undefined}
                     showCode={codeVisibleIds?.has(course.id)}
+                    compactCode={COMPACT_CODE_COURSES.has(course.code)}
                   />
                 </div>
               );
