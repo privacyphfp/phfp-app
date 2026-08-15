@@ -47,6 +47,15 @@ export default function CoursePathDiagram({
     return list;
   }, [healingPath, arhaticPath, branchesByAnchor, crossLink, foundational.length]);
 
+  // The Kriyashakti branch reads more naturally splitting off the middle of
+  // the AYP -> AY1 connector (matching the original reference diagram) than
+  // starting from AYP's own edge, where it tangles with the incoming
+  // PSY -> AYP arrow right at the corner.
+  const kriyaBranchIds = useMemo(() => {
+    const byCode = (code) => Object.values(courseById).find((c) => c.code === code)?.id;
+    return { from: byCode('AYP'), via: byCode('AY1'), to: byCode('KRIYA') };
+  }, [courseById]);
+
   const [paths, setPaths] = useState([]);
   const [outerPaths, setOuterPaths] = useState([]);
 
@@ -96,9 +105,15 @@ export default function CoursePathDiagram({
       // on the (much taller) Foundational box, which otherwise pulls it
       // down toward that box's vertical center.
       const isFoundationalEdge = edge.to === FOUNDATIONAL_KEY;
+      const isKriyaBranch =
+        edge.from === kriyaBranchIds.from && edge.to === kriyaBranchIds.to && kriyaBranchIds.via;
+      const viaRect = isKriyaBranch ? rectOf(kriyaBranchIds.via, origin) : null;
+
       const p1 = isFoundationalEdge
         ? { x: fRect.left, y: fRect.top + 49 }
-        : (override.start ?? attachPoint(fRect, override.end ?? centerOf(tRect)));
+        : isKriyaBranch && viaRect
+          ? { x: centerOf(fRect).x, y: (fRect.bottom + viaRect.top) / 2 }
+          : (override.start ?? attachPoint(fRect, override.end ?? centerOf(tRect)));
       const p2 = override.end ?? attachPoint(tRect, p1);
 
       const entry = { key: `${edge.from}|${edge.to}`, points: elbowPoints(p1, p2) };
@@ -107,7 +122,7 @@ export default function CoursePathDiagram({
 
     setPaths(next);
     setOuterPaths(nextOuter);
-  }, [autoEdges, edgeOverrides]);
+  }, [autoEdges, edgeOverrides, kriyaBranchIds]);
 
   useLayoutEffect(() => {
     recomputePaths();
