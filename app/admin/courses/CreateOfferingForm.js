@@ -10,7 +10,11 @@ const EVENT_TYPES = [
   { value: 'weekly', label: 'Weekly event' },
 ];
 
-export default function CreateOfferingForm({ courses, regions }) {
+function instructorName(profile) {
+  return profile.full_name || [profile.first_name, profile.last_name].filter(Boolean).join(' ') || 'Unnamed';
+}
+
+export default function CreateOfferingForm({ courses, regions, instructors }) {
   const router = useRouter();
   const [type, setType] = useState('offering'); // 'offering' | 'event'
 
@@ -25,6 +29,9 @@ export default function CreateOfferingForm({ courses, regions }) {
   const [isOnline, setIsOnline] = useState(false);
   const [capacity, setCapacity] = useState('');
   const [price, setPrice] = useState('');
+  const [instructorMode, setInstructorMode] = useState('existing'); // 'existing' | 'manual'
+  const [instructorId, setInstructorId] = useState('');
+  const [instructorNameInput, setInstructorNameInput] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -36,6 +43,8 @@ export default function CreateOfferingForm({ courses, regions }) {
     setPrice('');
     setTitle('');
     setDescription('');
+    setInstructorId('');
+    setInstructorNameInput('');
   }
 
   async function handleSubmit(e) {
@@ -61,6 +70,8 @@ export default function CreateOfferingForm({ courses, regions }) {
               price: price ? Number(price) : null,
               region_id: regionId || null,
               created_by: user?.id ?? null,
+              instructor_id: instructorMode === 'existing' ? instructorId || null : null,
+              instructor_name: instructorMode === 'manual' ? instructorNameInput.trim() || null : null,
             })
           : await supabase.from('events').insert({
               title,
@@ -223,6 +234,45 @@ export default function CreateOfferingForm({ courses, regions }) {
                 className={inputClass}
               />
             </label>
+
+            <div className="sm:col-span-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-brand-ink/80">Instructor</span>
+                <div className="flex gap-1 rounded-full border border-brand-blue/20 p-0.5 text-xs font-medium">
+                  <button
+                    type="button"
+                    onClick={() => setInstructorMode('existing')}
+                    className={`rounded-full px-3 py-1 transition-colors ${instructorMode === 'existing' ? 'bg-brand-blue text-white' : 'text-brand-ink/60'}`}
+                  >
+                    Existing profile
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInstructorMode('manual')}
+                    className={`rounded-full px-3 py-1 transition-colors ${instructorMode === 'manual' ? 'bg-brand-blue text-white' : 'text-brand-ink/60'}`}
+                  >
+                    Type name
+                  </button>
+                </div>
+              </div>
+              {instructorMode === 'existing' ? (
+                <select value={instructorId} onChange={(e) => setInstructorId(e.target.value)} className={inputClass}>
+                  <option value="">Select an instructor</option>
+                  {instructors.map((i) => (
+                    <option key={i.id} value={i.id}>
+                      {instructorName(i)}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  value={instructorNameInput}
+                  onChange={(e) => setInstructorNameInput(e.target.value)}
+                  placeholder="Instructor's name"
+                  className={inputClass}
+                />
+              )}
+            </div>
           </>
         )}
       </div>

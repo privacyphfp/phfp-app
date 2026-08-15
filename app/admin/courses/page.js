@@ -11,12 +11,14 @@ const EVENT_TYPE_LABELS = {
 export default async function AdminCoursesPage() {
   const { supabase } = await requireProfile(['admin']);
 
-  const [{ data: courses }, { data: offerings }, { data: enrollments }, { data: regions }, { data: events }] =
+  const [{ data: courses }, { data: offerings }, { data: enrollments }, { data: regions }, { data: events }, { data: instructors }] =
     await Promise.all([
       supabase.from('courses').select('id, code, name').order('name'),
       supabase
         .from('course_offerings')
-        .select('id, start_date, end_date, location, is_online, capacity, price, status, course_id, region_id')
+        .select(
+          'id, start_date, end_date, location, is_online, capacity, price, status, course_id, region_id, instructor_id, instructor_name'
+        )
         .order('start_date', { ascending: false }),
       supabase.from('enrollments').select('course_offering_id'),
       supabase.from('regions').select('id, name').order('name'),
@@ -24,10 +26,20 @@ export default async function AdminCoursesPage() {
         .from('events')
         .select('id, title, event_type, start_date, end_date, location, is_online, region_id')
         .order('start_date', { ascending: false }),
+      supabase.from('profiles').select('id, full_name, first_name, last_name').eq('staff_position', 'instructor').order('full_name'),
     ]);
 
   const courseById = Object.fromEntries((courses ?? []).map((c) => [c.id, c]));
   const regionById = Object.fromEntries((regions ?? []).map((r) => [r.id, r]));
+  const instructorById = Object.fromEntries((instructors ?? []).map((i) => [i.id, i]));
+
+  function instructorLabel(o) {
+    if (o.instructor_id) {
+      const i = instructorById[o.instructor_id];
+      return i ? i.full_name || [i.first_name, i.last_name].filter(Boolean).join(' ') : null;
+    }
+    return o.instructor_name || null;
+  }
 
   const enrollmentCounts = {};
   for (const e of enrollments ?? []) {
@@ -39,7 +51,7 @@ export default async function AdminCoursesPage() {
       <h1 className="text-2xl font-semibold text-brand-blue-dark">Manage Course Offerings &amp; Events</h1>
 
       <div className="mt-6">
-        <CreateOfferingForm courses={courses ?? []} regions={regions ?? []} />
+        <CreateOfferingForm courses={courses ?? []} regions={regions ?? []} instructors={instructors ?? []} />
       </div>
 
       <h2 className="mt-10 text-lg font-semibold text-brand-ink/90">Course Offerings</h2>
@@ -59,6 +71,7 @@ export default async function AdminCoursesPage() {
               {o.is_online ? 'Online' : o.location || 'TBD'} · {o.price ? `₱${o.price}` : 'Free'} · {o.status} ·{' '}
               {regionById[o.region_id]?.name ?? 'Nationwide'}
             </div>
+            <div className="mt-1 text-sm text-brand-ink/60">Instructor: {instructorLabel(o) || 'Not assigned'}</div>
             {(enrollmentCounts[o.id] ?? 0) > 0 && (
               <div className="mt-3">
                 <ExportEnrollmentsButton
