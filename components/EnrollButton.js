@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 export default function EnrollButton({ offeringId, studentId, disabled, label }) {
   const router = useRouter();
   const [referredBy, setReferredBy] = useState('');
+  const [enrollmentType, setEnrollmentType] = useState('new');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -16,9 +17,12 @@ export default function EnrollButton({ offeringId, studentId, disabled, label })
 
     try {
       const supabase = createClient();
-      const { error } = await supabase
-        .from('enrollments')
-        .insert({ student_id: studentId, course_offering_id: offeringId, referred_by: referredBy || null });
+      const { error } = await supabase.from('enrollments').insert({
+        student_id: studentId,
+        course_offering_id: offeringId,
+        referred_by: referredBy || null,
+        enrollment_type: enrollmentType,
+      });
 
       if (error) {
         setError(error.message);
@@ -36,12 +40,42 @@ export default function EnrollButton({ offeringId, studentId, disabled, label })
   return (
     <div>
       {!disabled && (
-        <input
-          value={referredBy}
-          onChange={(e) => setReferredBy(e.target.value)}
-          placeholder="Referred by (optional)"
-          className="mb-2 w-full max-w-xs rounded-lg border border-brand-blue/20 px-3 py-1.5 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20 dark:bg-zinc-900"
-        />
+        <>
+          <div className="mb-2 flex gap-4 text-sm text-brand-ink/80">
+            <label className="flex items-center gap-1.5">
+              <input
+                type="radio"
+                name={`enrollment-type-${offeringId}`}
+                value="new"
+                checked={enrollmentType === 'new'}
+                onChange={() => setEnrollmentType('new')}
+              />
+              New
+            </label>
+            <label className="flex items-center gap-1.5">
+              <input
+                type="radio"
+                name={`enrollment-type-${offeringId}`}
+                value="review"
+                checked={enrollmentType === 'review'}
+                onChange={() => setEnrollmentType('review')}
+              />
+              Review
+            </label>
+          </div>
+          {enrollmentType === 'review' && (
+            <p className="mb-2 text-xs text-brand-ink/50">
+              Review students give a tithe based on what they feel the course is worth, instead of the fixed rate.
+              Accounting will record the amount once it&apos;s received.
+            </p>
+          )}
+          <input
+            value={referredBy}
+            onChange={(e) => setReferredBy(e.target.value)}
+            placeholder="Referred by (optional)"
+            className="mb-2 w-full max-w-xs rounded-lg border border-brand-blue/20 px-3 py-1.5 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20 dark:bg-zinc-900"
+          />
+        </>
       )}
       <div>
         <button

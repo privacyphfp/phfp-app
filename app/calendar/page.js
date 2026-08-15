@@ -16,11 +16,13 @@ export default async function CalendarPage() {
   const [{ data: offerings }, { data: events }, { data: regions }] = await Promise.all([
     supabase
       .from('course_offerings')
-      .select('id, start_date, end_date, course_id, region_id, courses(name, series)')
+      .select('id, start_date, end_date, course_id, region_id, courses(code, name, series)')
       .order('start_date'),
     supabase.from('events').select('id, title, start_date, end_date, region_id').order('start_date'),
-    supabase.from('regions').select('id, name').order('name'),
+    supabase.from('regions').select('id, name, code').order('name'),
   ]);
+
+  const regionById = Object.fromEntries((regions ?? []).map((r) => [r.id, r]));
 
   const {
     data: { user },
@@ -35,21 +37,28 @@ export default async function CalendarPage() {
     enrolledOfferingIds = new Set((myEnrollments ?? []).map((e) => e.course_offering_id));
   }
 
-  const offeringItems = (offerings ?? []).map((o) => ({
-    title: `${o.courses?.name ?? 'Course'}${enrolledOfferingIds.has(o.id) ? ' ✓' : ''}`,
-    start: o.start_date,
-    end: exclusiveEnd(o.end_date || o.start_date),
-    color: SERIES_HEX[o.courses?.series] ?? '#00549c',
-    extendedProps: { href: `/courses/${o.course_id}`, regionId: o.region_id ?? null },
-  }));
+  const offeringItems = (offerings ?? []).map((o) => {
+    const regionCode = regionById[o.region_id]?.code;
+    const label = o.courses?.code || o.courses?.name || 'Course';
+    return {
+      title: `${regionCode ? regionCode + ' · ' : ''}${label}${enrolledOfferingIds.has(o.id) ? ' ✓' : ''}`,
+      start: o.start_date,
+      end: exclusiveEnd(o.end_date || o.start_date),
+      color: SERIES_HEX[o.courses?.series] ?? '#00549c',
+      extendedProps: { href: `/courses/${o.course_id}`, regionId: o.region_id ?? null },
+    };
+  });
 
-  const eventItems = (events ?? []).map((ev) => ({
-    title: `📅 ${ev.title}`,
-    start: ev.start_date,
-    end: exclusiveEnd(ev.end_date || ev.start_date),
-    color: EVENT_COLOR,
-    extendedProps: { href: null, regionId: ev.region_id ?? null },
-  }));
+  const eventItems = (events ?? []).map((ev) => {
+    const regionCode = regionById[ev.region_id]?.code;
+    return {
+      title: `📅 ${regionCode ? regionCode + ' · ' : ''}${ev.title}`,
+      start: ev.start_date,
+      end: exclusiveEnd(ev.end_date || ev.start_date),
+      color: EVENT_COLOR,
+      extendedProps: { href: null, regionId: ev.region_id ?? null },
+    };
+  });
 
   return (
     <div className="mx-auto w-full max-w-4xl p-8">

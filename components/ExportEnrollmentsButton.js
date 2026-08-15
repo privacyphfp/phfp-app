@@ -3,7 +3,19 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
-const COLUMNS = ['Full Name', 'Birthdate', 'Religion', 'Address', 'Profession', 'Phone', 'Email', 'Facebook', 'Referred by'];
+const COLUMNS = [
+  'Full Name',
+  'Birthdate',
+  'Religion',
+  'Address',
+  'Profession',
+  'Phone',
+  'Email',
+  'Facebook',
+  'Referred by',
+  'Type',
+  'Tithe Amount',
+];
 
 function csvEscape(value) {
   const s = value == null ? '' : String(value);
@@ -31,7 +43,7 @@ export default function ExportEnrollmentsButton({ offeringId, fileName }) {
       const { data, error } = await supabase
         .from('enrollments')
         .select(
-          'referred_by, profiles(first_name, last_name, full_name, birthdate, religion, address, profession, phone, email, fb_link)'
+          'referred_by, enrollment_type, tithe_amount, profiles(first_name, last_name, full_name, birthdate, religion, address, profession, phone, email, fb_link)'
         )
         .eq('course_offering_id', offeringId);
 
@@ -43,7 +55,19 @@ export default function ExportEnrollmentsButton({ offeringId, fileName }) {
       const rows = (data ?? []).map((e) => {
         const p = e.profiles ?? {};
         const fullName = [p.first_name, p.last_name].filter(Boolean).join(' ') || p.full_name || '';
-        return [fullName, p.birthdate ?? '', p.religion ?? '', p.address ?? '', p.profession ?? '', p.phone ?? '', p.email ?? '', p.fb_link ?? '', e.referred_by ?? ''];
+        return [
+          fullName,
+          p.birthdate ?? '',
+          p.religion ?? '',
+          p.address ?? '',
+          p.profession ?? '',
+          p.phone ?? '',
+          p.email ?? '',
+          p.fb_link ?? '',
+          e.referred_by ?? '',
+          e.enrollment_type === 'review' ? 'Review' : 'New',
+          e.tithe_amount ?? '',
+        ];
       });
 
       const blob = new Blob([toCsv(rows)], { type: 'text/csv;charset=utf-8;' });

@@ -13,6 +13,7 @@ export default function CalendarView({ events }) {
       <FullCalendar
         plugins={[dayGridPlugin, interactionPlugin]}
         initialView="dayGridMonth"
+        headerToolbar={{ left: 'title', center: '', right: 'today,prev,next' }}
         height="auto"
         events={events}
         eventClick={(info) => {

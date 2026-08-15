@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { requireProfile } from '@/lib/auth';
 import RoleAssignmentForm from '@/components/RoleAssignmentForm';
+import TitheAmountForm from '@/components/TitheAmountForm';
 
 function Field({ label, value }) {
   return (
@@ -19,7 +20,9 @@ export default async function AdminStudentDetailPage({ params }) {
     supabase.from('profiles').select('*').eq('id', id).single(),
     supabase
       .from('enrollments')
-      .select('id, status, enrolled_at, referred_by, course_offerings(start_date, courses(name))')
+      .select(
+        'id, status, enrolled_at, referred_by, enrollment_type, tithe_amount, course_offerings(start_date, courses(name))'
+      )
       .eq('student_id', id)
       .order('enrolled_at', { ascending: false }),
     supabase.from('regions').select('id, name').order('name'),
@@ -154,8 +157,15 @@ export default async function AdminStudentDetailPage({ params }) {
               </div>
               <div className="mt-1 text-brand-ink/60">
                 {e.status}
+                {' · '}
+                <span className={e.enrollment_type === 'review' ? 'text-brand-flame' : ''}>
+                  {e.enrollment_type === 'review' ? 'Review' : 'New'}
+                </span>
                 {e.referred_by && ` · Referred by ${e.referred_by}`}
               </div>
+              {e.enrollment_type === 'review' && (
+                <TitheAmountForm enrollmentId={e.id} initialAmount={e.tithe_amount} />
+              )}
             </li>
           ))}
           {!(enrollments ?? []).length && <p className="text-brand-ink/50">No enrollments yet.</p>}

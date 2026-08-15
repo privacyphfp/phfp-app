@@ -6,7 +6,7 @@ import { BOX_WIDTH, buildEdges, computeDefaultPositions, resolveFixedEdgeOverrid
 
 const FOUNDATIONAL_KEY = '__foundational__';
 
-const EXTRA_CODE_COURSES = new Set(['PSD', 'PCH', 'SBM', 'PFS', 'KRIYA']);
+const EXTRA_CODE_COURSES = new Set(['PSD', 'PCH', 'SBM', 'PFS', 'KRIYA', 'HC', 'AY1', 'AY2']);
 
 // Renders the Core Healing Path and Arhatic Yoga Path on a canvas at their
 // final (hand-placed, now static) positions, plus the Foundational Courses
@@ -153,7 +153,7 @@ export default function CoursePathDiagram({
         >
           <div className="flex flex-col gap-3">
             {foundational.map((c) => (
-              <CourseBox key={c.id} course={c} />
+              <CourseBox key={c.id} course={c} showCode />
             ))}
           </div>
         </div>
