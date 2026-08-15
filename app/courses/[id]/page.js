@@ -126,7 +126,7 @@ export default async function CourseDetailPage({ params }) {
               </div>
               <div className="mt-1 text-sm text-brand-ink/60">{o.is_online ? 'Online' : o.location || 'TBD'}</div>
               {instructorLabel(o) && (
-                <div className="mt-1 text-sm text-brand-ink/60">Instructor: {instructorLabel(o)}</div>
+                <div className="mt-1 text-sm text-brand-ink/60">Instructor/s: {instructorLabel(o)}</div>
               )}
               {!eligible && <p className="mt-2 text-sm text-brand-flame">Requires: {missingPrereqs.join(', ')}</p>}
               {user && !alreadyEnrolled && eligible && !profileComplete && (

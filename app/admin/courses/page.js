@@ -72,7 +72,7 @@ export default async function AdminCoursesPage() {
               {o.is_online ? 'Online' : o.location || 'TBD'} · {o.price ? `₱${o.price}` : 'Free'} · {o.status} ·{' '}
               {regionById[o.region_id]?.name ?? 'Nationwide'}
             </div>
-            <div className="mt-1 text-sm text-brand-ink/60">Instructor: {instructorLabel(o) || 'Not assigned'}</div>
+            <div className="mt-1 text-sm text-brand-ink/60">Instructor/s: {instructorLabel(o) || 'Not assigned'}</div>
             {(enrollmentCounts[o.id] ?? 0) > 0 && (
               <div className="mt-3">
                 <ExportEnrollmentsButton
