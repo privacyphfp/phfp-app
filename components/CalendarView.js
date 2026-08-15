@@ -38,7 +38,7 @@ export default function CalendarView({ events }) {
     'rounded-lg border border-brand-blue/30 px-2.5 py-1.5 text-sm text-brand-blue transition-colors hover:bg-brand-blue/10';
 
   return (
-    <div className="rounded-2xl border border-brand-gold/40 bg-white/70 p-4 shadow-sm dark:bg-white/5">
+    <div className="rounded-2xl border border-brand-gold/40 bg-white/70 p-1.5 shadow-sm sm:p-4 dark:bg-white/5">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-semibold text-brand-blue-dark">{title}</h2>
         <div className="flex items-center gap-1.5">

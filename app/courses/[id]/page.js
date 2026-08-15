@@ -117,7 +117,10 @@ export default async function CourseDetailPage({ params }) {
           return (
             <li key={o.id} className="rounded-xl border border-brand-blue/15 bg-white/60 p-4 shadow-sm dark:bg-white/5">
               <div className="flex items-baseline justify-between">
-                <span className="font-medium text-brand-ink">{o.start_date}</span>
+                <span className="font-medium text-brand-ink">
+                  {o.start_date}
+                  {o.end_date && o.end_date !== o.start_date ? ` – ${o.end_date}` : ''}
+                </span>
                 <span className="text-sm text-brand-ink/50">{o.price ? `₱${o.price}` : 'Free'}</span>
               </div>
               <div className="mt-1 text-sm text-brand-ink/60">{o.is_online ? 'Online' : o.location || 'TBD'}</div>

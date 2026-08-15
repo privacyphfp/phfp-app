@@ -47,9 +47,9 @@ body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
-/* Calendar event tiles: a main line (location - course code) with the
-   instructor's name on its own line underneath, each truncating on its own
-   rather than wrapping mid-word. */
+/* Calendar event tiles: a main line (location - course code) that stays on
+   one line, with the instructor's full name wrapping underneath instead of
+   getting cut off — the tile just grows taller to fit. */
 .fc-event-lines {
   display: flex;
   min-width: 0;
@@ -57,21 +57,29 @@ body {
   gap: 1px;
 }
 
-.fc-event-line-main,
-.fc-event-line-sub {
+.fc-event-line-main {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.fc-event-line-main {
   font-size: 0.8rem;
   font-weight: 600;
 }
 
 .fc-event-line-sub {
+  white-space: normal;
+  overflow-wrap: break-word;
   font-size: 0.7rem;
   opacity: 0.85;
+}
+
+@media (max-width: 640px) {
+  .fc-event-line-main {
+    font-size: 0.68rem;
+  }
+
+  .fc-event-line-sub {
+    font-size: 0.6rem;
+  }
 }
 
 /* Calendar event tiles that link somewhere (course offerings) get a hover
