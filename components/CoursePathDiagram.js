@@ -146,6 +146,7 @@ export default function CoursePathDiagram({
           Foundational Courses
         </div>
         <p className="mt-2 text-center text-xs text-brand-ink/50">Build your spiritual foundation</p>
+        <p className="mt-1 text-center text-xs text-brand-ink/50">Prerequisite: Basic Pranic Healing Course</p>
         <div
           ref={foundationalBoxRef}
           className="mt-4 rounded-2xl border-2 border-dashed border-brand-indigo/40 bg-brand-indigo/5 p-4"
