@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { SERIES_HEX } from '@/lib/courseSeries';
+import { formatInstructorName } from '@/lib/formatInstructor';
 import CalendarFilterView from '@/components/CalendarFilterView';
 
 const EVENT_COLOR = '#c0600c';
@@ -33,9 +34,9 @@ export default async function CalendarPage() {
   function instructorLabel(o) {
     if (o.instructor_id) {
       const p = instructorById[o.instructor_id];
-      return p ? p.full_name || [p.first_name, p.last_name].filter(Boolean).join(' ') : null;
+      return p ? formatInstructorName(p.full_name || [p.first_name, p.last_name].filter(Boolean).join(' ')) : null;
     }
-    return o.instructor_name || null;
+    return formatInstructorName(o.instructor_name) || null;
   }
 
   const {

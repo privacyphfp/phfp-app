@@ -47,9 +47,9 @@ body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
-/* Calendar event tiles: a main line (location - course code) that stays on
-   one line, with the instructor's full name wrapping underneath instead of
-   getting cut off — the tile just grows taller to fit. */
+/* Calendar event tiles: both the location/course-code line and the
+   instructor line wrap fully instead of getting cut off with "…" — the
+   tile just grows taller to fit whatever it needs to show. */
 .fc-event-lines {
   display: flex;
   min-width: 0;
@@ -57,17 +57,18 @@ body {
   gap: 1px;
 }
 
+.fc-event-line-main,
+.fc-event-line-sub {
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
 .fc-event-line-main {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   font-size: 0.8rem;
   font-weight: 600;
 }
 
 .fc-event-line-sub {
-  white-space: normal;
-  overflow-wrap: break-word;
   font-size: 0.7rem;
   opacity: 0.85;
 }

@@ -1,4 +1,5 @@
 import { requireProfile } from '@/lib/auth';
+import { formatInstructorName } from '@/lib/formatInstructor';
 import CreateOfferingForm from './CreateOfferingForm';
 import ExportEnrollmentsButton from '@/components/ExportEnrollmentsButton';
 
@@ -36,9 +37,9 @@ export default async function AdminCoursesPage() {
   function instructorLabel(o) {
     if (o.instructor_id) {
       const i = instructorById[o.instructor_id];
-      return i ? i.full_name || [i.first_name, i.last_name].filter(Boolean).join(' ') : null;
+      return i ? formatInstructorName(i.full_name || [i.first_name, i.last_name].filter(Boolean).join(' ')) : null;
     }
-    return o.instructor_name || null;
+    return formatInstructorName(o.instructor_name) || null;
   }
 
   const enrollmentCounts = {};

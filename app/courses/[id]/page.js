@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { SERIES_LABELS } from '@/lib/courseSeries';
 import { isProfileComplete } from '@/lib/profileCompleteness';
+import { formatInstructorName } from '@/lib/formatInstructor';
 import EnrollButton from '@/components/EnrollButton';
 
 export default async function CourseDetailPage({ params }) {
@@ -43,9 +44,9 @@ export default async function CourseDetailPage({ params }) {
   function instructorLabel(o) {
     if (o.instructor_id) {
       const p = instructorById[o.instructor_id];
-      return p ? p.full_name || [p.first_name, p.last_name].filter(Boolean).join(' ') : null;
+      return p ? formatInstructorName(p.full_name || [p.first_name, p.last_name].filter(Boolean).join(' ')) : null;
     }
-    return o.instructor_name || null;
+    return formatInstructorName(o.instructor_name) || null;
   }
 
   const {
