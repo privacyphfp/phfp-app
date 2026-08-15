@@ -46,3 +46,59 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
+
+/* Calendar event tiles: a main line (location - course code) with the
+   instructor's name on its own line underneath, each truncating on its own
+   rather than wrapping mid-word. */
+.fc-event-lines {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.fc-event-line-main,
+.fc-event-line-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fc-event-line-main {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.fc-event-line-sub {
+  font-size: 0.7rem;
+  opacity: 0.85;
+}
+
+/* Calendar event tiles that link somewhere (course offerings) get a hover
+   cue so it's obvious they're clickable; the rest (nationwide events with
+   no detail page yet) stay as plain, non-interactive labels. */
+.fc-event-clickable {
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.1s ease;
+}
+
+.fc-event-clickable:hover {
+  filter: brightness(1.2);
+  transform: translateY(-1px);
+}
+
+/* Give stacked same-day events (multiple offerings on one date) breathing
+   room instead of touching edge-to-edge, and enough padding that truncated
+   text still reads clearly at a glance. */
+.fc-daygrid-event-harness {
+  margin-bottom: 3px;
+}
+
+.fc-daygrid-event-harness:last-child {
+  margin-bottom: 0;
+}
+
+.fc-daygrid-event {
+  padding: 2px 5px;
+  border-radius: 5px;
+}

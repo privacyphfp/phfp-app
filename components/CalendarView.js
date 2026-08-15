@@ -77,6 +77,15 @@ export default function CalendarView({ events }) {
         }}
         height="auto"
         events={events}
+        eventContent={(arg) => {
+          const instructor = arg.event.extendedProps.instructor;
+          return (
+            <div className="fc-event-lines">
+              <div className="fc-event-line-main">{arg.event.title}</div>
+              {instructor && <div className="fc-event-line-sub">{instructor}</div>}
+            </div>
+          );
+        }}
         eventClick={(info) => {
           info.jsEvent.preventDefault();
           if (info.event.extendedProps.href) {

@@ -25,7 +25,7 @@ export default async function CourseDetailPage({ params }) {
     supabase.from('course_prerequisites').select('prerequisite_course_id').eq('course_id', id),
     supabase
       .from('course_offerings')
-      .select('id, start_date, end_date, location, is_online, price, capacity')
+      .select('id, start_date, end_date, location, is_online, price, capacity, instructor_id, instructor_name')
       .eq('course_id', id)
       .order('start_date'),
     supabase.from('courses').select('id, name'),
@@ -33,6 +33,20 @@ export default async function CourseDetailPage({ params }) {
 
   const courseNameById = Object.fromEntries((allCourses ?? []).map((c) => [c.id, c.name]));
   const requiredCourseIds = (prereqRows ?? []).map((p) => p.prerequisite_course_id);
+
+  const instructorIds = [...new Set((offerings ?? []).map((o) => o.instructor_id).filter(Boolean))];
+  const { data: instructorProfiles } = instructorIds.length
+    ? await supabase.from('profiles').select('id, full_name, first_name, last_name').in('id', instructorIds)
+    : { data: [] };
+  const instructorById = Object.fromEntries((instructorProfiles ?? []).map((p) => [p.id, p]));
+
+  function instructorLabel(o) {
+    if (o.instructor_id) {
+      const p = instructorById[o.instructor_id];
+      return p ? p.full_name || [p.first_name, p.last_name].filter(Boolean).join(' ') : null;
+    }
+    return o.instructor_name || null;
+  }
 
   const {
     data: { user },
@@ -107,6 +121,9 @@ export default async function CourseDetailPage({ params }) {
                 <span className="text-sm text-brand-ink/50">{o.price ? `₱${o.price}` : 'Free'}</span>
               </div>
               <div className="mt-1 text-sm text-brand-ink/60">{o.is_online ? 'Online' : o.location || 'TBD'}</div>
+              {instructorLabel(o) && (
+                <div className="mt-1 text-sm text-brand-ink/60">Instructor: {instructorLabel(o)}</div>
+              )}
               {!eligible && <p className="mt-2 text-sm text-brand-flame">Requires: {missingPrereqs.join(', ')}</p>}
               {user && !alreadyEnrolled && eligible && !profileComplete && (
                 <p className="mt-2 text-sm text-brand-flame">

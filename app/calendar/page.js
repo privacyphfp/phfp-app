@@ -16,13 +16,27 @@ export default async function CalendarPage() {
   const [{ data: offerings }, { data: events }, { data: regions }] = await Promise.all([
     supabase
       .from('course_offerings')
-      .select('id, start_date, end_date, course_id, region_id, courses(code, name, series)')
+      .select('id, start_date, end_date, course_id, region_id, instructor_id, instructor_name, courses(code, name, series)')
       .order('start_date'),
     supabase.from('events').select('id, title, start_date, end_date, region_id').order('start_date'),
     supabase.from('regions').select('id, name, code').order('name'),
   ]);
 
   const regionById = Object.fromEntries((regions ?? []).map((r) => [r.id, r]));
+
+  const instructorIds = [...new Set((offerings ?? []).map((o) => o.instructor_id).filter(Boolean))];
+  const { data: instructorProfiles } = instructorIds.length
+    ? await supabase.from('profiles').select('id, full_name, first_name, last_name').in('id', instructorIds)
+    : { data: [] };
+  const instructorById = Object.fromEntries((instructorProfiles ?? []).map((p) => [p.id, p]));
+
+  function instructorLabel(o) {
+    if (o.instructor_id) {
+      const p = instructorById[o.instructor_id];
+      return p ? p.full_name || [p.first_name, p.last_name].filter(Boolean).join(' ') : null;
+    }
+    return o.instructor_name || null;
+  }
 
   const {
     data: { user },
@@ -41,11 +55,12 @@ export default async function CalendarPage() {
     const regionCode = regionById[o.region_id]?.code;
     const label = o.courses?.code || o.courses?.name || 'Course';
     return {
-      title: `${regionCode ? regionCode + ' · ' : ''}${label}${enrolledOfferingIds.has(o.id) ? ' ✓' : ''}`,
+      title: `${regionCode ? regionCode + ' - ' : ''}${label}${enrolledOfferingIds.has(o.id) ? ' ✓' : ''}`,
       start: o.start_date,
       end: exclusiveEnd(o.end_date || o.start_date),
       color: SERIES_HEX[o.courses?.series] ?? '#00549c',
-      extendedProps: { href: `/courses/${o.course_id}`, regionId: o.region_id ?? null },
+      classNames: ['fc-event-clickable'],
+      extendedProps: { href: `/courses/${o.course_id}`, regionId: o.region_id ?? null, instructor: instructorLabel(o) },
     };
   });
 
