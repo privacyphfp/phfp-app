@@ -14,8 +14,12 @@ export default function CalendarView({ events }) {
       <FullCalendar
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
         initialView="dayGridMonth"
-        headerToolbar={{ left: 'title', center: '', right: 'today,prev,next' }}
-        footerToolbar={{ left: '', center: 'dayGridMonth,timeGridWeek,timeGridDay', right: '' }}
+        headerToolbar={{ left: 'title', center: '', right: 'today,prev,next,dayGridMonth,timeGridWeek,timeGridDay' }}
+        views={{
+          timeGridWeek: {
+            dayHeaderContent: (arg) => `${arg.date.toLocaleDateString('en-US', { weekday: 'short' })} ${arg.date.getDate()}`,
+          },
+        }}
         height="auto"
         events={events}
         eventClick={(info) => {
