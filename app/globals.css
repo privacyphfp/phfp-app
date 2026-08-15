@@ -60,7 +60,8 @@ body {
 .fc-event-line-main,
 .fc-event-line-sub {
   white-space: normal;
-  overflow-wrap: break-word;
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 .fc-event-line-main {
