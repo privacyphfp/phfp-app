@@ -70,7 +70,7 @@ export default async function StudentPage() {
             Calendar
           </Link>
           <Link href="/student/profile" className="text-brand-blue hover:underline">
-            Edit Profile
+            My Profile
           </Link>
         </div>
       </div>
