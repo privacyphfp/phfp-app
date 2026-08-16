@@ -54,17 +54,12 @@ export default async function SiteHeader() {
           {user ? (
             <SignOutButton className={navPillClass} />
           ) : (
-            <>
-              <Link href="/login" className={navPillClass}>
-                Log In
-              </Link>
-              <Link
-                href="/signup"
-                className="rounded-full bg-brand-blue px-4 py-1.5 text-white shadow-sm transition-colors hover:bg-brand-blue-dark"
-              >
-                Sign Up
-              </Link>
-            </>
+            <Link
+              href="/login"
+              className="rounded-full bg-brand-blue px-4 py-1.5 text-white shadow-sm transition-colors hover:bg-brand-blue-dark"
+            >
+              Sign Up / Log In
+            </Link>
           )}
         </nav>
 
@@ -84,17 +79,12 @@ export default async function SiteHeader() {
           {user ? (
             <SignOutButton className={mobilePillClass} />
           ) : (
-            <>
-              <Link href="/login" className={mobilePillClass}>
-                Log In
-              </Link>
-              <Link
-                href="/signup"
-                className="flex items-center justify-center rounded-full bg-brand-blue px-4 py-2.5 text-white shadow-sm transition-colors hover:bg-brand-blue-dark"
-              >
-                Sign Up
-              </Link>
-            </>
+            <Link
+              href="/login"
+              className="flex items-center justify-center rounded-full bg-brand-blue px-4 py-2.5 text-white shadow-sm transition-colors hover:bg-brand-blue-dark"
+            >
+              Sign Up / Log In
+            </Link>
           )}
         </MobileMenu>
       </div>
