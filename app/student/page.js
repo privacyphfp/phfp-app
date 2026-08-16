@@ -3,6 +3,7 @@ import { requireProfile } from '@/lib/auth';
 import { computeEligibility } from '@/lib/eligibility';
 import { isProfileComplete } from '@/lib/profileCompleteness';
 import { signReceiptUrls } from '@/lib/receiptUrl';
+import { signAvatarUrl } from '@/lib/avatarUrl';
 import EnrollButton from '@/components/EnrollButton';
 import CourseBingoBoard from '@/components/CourseBingoBoard';
 
@@ -42,6 +43,8 @@ export default async function StudentPage() {
 
   const enrolledOfferingIds = new Set((myEnrollments ?? []).map((e) => e.course_offering_id));
 
+  const avatarSignedUrl = await signAvatarUrl(supabase, profile?.avatar_url);
+
   const upcomingEnrollments = await signReceiptUrls(
     supabase,
     (myEnrollments ?? [])
@@ -67,8 +70,24 @@ export default async function StudentPage() {
           </Link>
         </div>
       )}
-      <h1 className="text-2xl font-semibold text-brand-blue-dark">My Dashboard</h1>
-      <p className="mt-1 text-brand-ink/60">Welcome, {profile?.full_name || 'Student'}.</p>
+      <div className="flex items-center gap-4">
+        {avatarSignedUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={avatarSignedUrl}
+            alt="Profile photo"
+            className="h-14 w-14 rounded-full border border-brand-blue/20 object-cover"
+          />
+        ) : (
+          <div className="flex h-14 w-14 items-center justify-center rounded-full border border-dashed border-brand-blue/30 bg-brand-blue/5 text-[10px] text-brand-ink/40">
+            No photo
+          </div>
+        )}
+        <div>
+          <h1 className="text-2xl font-semibold text-brand-blue-dark">My Dashboard</h1>
+          <p className="mt-1 text-brand-ink/60">Welcome, {profile?.full_name || 'Student'}.</p>
+        </div>
+      </div>
 
       <Link
         href="/student/profile"

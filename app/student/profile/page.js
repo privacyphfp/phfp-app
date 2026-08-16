@@ -1,8 +1,10 @@
 import { requireProfile } from '@/lib/auth';
+import { signAvatarUrl } from '@/lib/avatarUrl';
 import ProfileForm from './ProfileForm';
 
 export default async function ProfilePage() {
-  const { profile } = await requireProfile(['student', 'volunteer', 'admin']);
+  const { supabase, profile } = await requireProfile(['student', 'volunteer', 'admin']);
+  const avatarSignedUrl = await signAvatarUrl(supabase, profile?.avatar_url);
 
   return (
     <div className="mx-auto w-full max-w-2xl p-8">
@@ -11,7 +13,7 @@ export default async function ProfilePage() {
         Keep your details up to date — this is what PHFP staff will see for your account.
       </p>
       <div className="mt-6">
-        <ProfileForm profile={profile} />
+        <ProfileForm profile={profile} avatarSignedUrl={avatarSignedUrl} />
       </div>
     </div>
   );

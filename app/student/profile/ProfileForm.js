@@ -35,8 +35,11 @@ function RequiredLabel({ children }) {
   );
 }
 
-export default function ProfileForm({ profile }) {
+export default function ProfileForm({ profile, avatarSignedUrl }) {
   const router = useRouter();
+
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState(avatarSignedUrl ?? null);
 
   const [firstName, setFirstName] = useState(profile?.first_name ?? '');
   const [lastName, setLastName] = useState(profile?.last_name ?? '');
@@ -75,15 +78,34 @@ export default function ProfileForm({ profile }) {
       return;
     }
 
+    if (!avatarFile && !profile?.avatar_url) {
+      setError('Please upload a profile photo.');
+      return;
+    }
+
     setLoading(true);
 
     try {
       const supabase = createClient();
       const fullName = `${firstName} ${lastName}`.trim() || profile?.full_name || '';
 
+      let avatarPath = profile?.avatar_url ?? null;
+      if (avatarFile) {
+        const ext = avatarFile.name.split('.').pop();
+        avatarPath = `${profile.id}/avatar.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(avatarPath, avatarFile, { upsert: true });
+        if (uploadError) {
+          setError(uploadError.message);
+          return;
+        }
+      }
+
       const { error } = await supabase
         .from('profiles')
         .update({
+          avatar_url: avatarPath,
           full_name: fullName,
           first_name: firstName || null,
           last_name: lastName || null,
@@ -148,6 +170,43 @@ export default function ProfileForm({ profile }) {
       {/* -------------------------------------------------- */}
       <section className="space-y-4">
         <h2 className="text-lg font-semibold text-brand-blue-dark">Personal Information</h2>
+
+        <div>
+          <RequiredLabel>Profile Photo</RequiredLabel>
+          <div className="mt-2 flex items-center gap-4">
+            {avatarPreviewUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={avatarPreviewUrl}
+                alt="Profile photo"
+                className="h-20 w-20 rounded-full border border-brand-blue/20 object-cover"
+              />
+            ) : (
+              <div className="flex h-20 w-20 items-center justify-center rounded-full border border-dashed border-brand-blue/30 bg-brand-blue/5 text-xs text-brand-ink/40">
+                No photo
+              </div>
+            )}
+            <div>
+              <label
+                htmlFor="avatar-file"
+                className="cursor-pointer rounded-full border border-brand-blue/30 bg-brand-blue/5 px-3 py-1.5 text-xs font-medium text-brand-blue transition-colors hover:border-brand-blue hover:bg-brand-blue/10"
+              >
+                Choose Photo to Upload
+              </label>
+              <input
+                id="avatar-file"
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] ?? null;
+                  setAvatarFile(file);
+                  if (file) setAvatarPreviewUrl(URL.createObjectURL(file));
+                }}
+              />
+            </div>
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
