@@ -12,6 +12,11 @@ export default function EnrollButton({ offeringId, studentId, disabled, label })
   const [error, setError] = useState(null);
 
   async function handleClick() {
+    if (!referredBy.trim()) {
+      setError('Please enter who referred you.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -20,7 +25,7 @@ export default function EnrollButton({ offeringId, studentId, disabled, label })
       const { error } = await supabase.from('enrollments').insert({
         student_id: studentId,
         course_offering_id: offeringId,
-        referred_by: referredBy || null,
+        referred_by: referredBy.trim(),
         enrollment_type: enrollmentType,
       });
 
@@ -69,10 +74,13 @@ export default function EnrollButton({ offeringId, studentId, disabled, label })
               Accounting will record the amount once it&apos;s received.
             </p>
           )}
+          <label className="mb-1 block text-sm text-brand-ink/80">
+            Referred by <span className="text-red-600">*</span>
+          </label>
           <input
             value={referredBy}
             onChange={(e) => setReferredBy(e.target.value)}
-            placeholder="Referred by (optional)"
+            placeholder="Who referred you?"
             className="mb-2 w-full max-w-xs rounded-lg border border-brand-blue/20 px-3 py-1.5 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20 dark:bg-zinc-900"
           />
         </>

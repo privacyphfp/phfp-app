@@ -28,8 +28,8 @@ export default function CalendarFilterView({ items, regions }) {
         >
           <option value="all">Nationwide (all regions)</option>
           {regions.map((r) => (
-            <option key={r.id} value={r.id}>
-              {r.name}
+            <option key={r.id} value={r.id} title={r.name}>
+              {r.code || r.name}
             </option>
           ))}
         </select>

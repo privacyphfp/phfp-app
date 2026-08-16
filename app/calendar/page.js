@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { SERIES_HEX } from '@/lib/courseSeries';
 import { formatInstructorName } from '@/lib/formatInstructor';
 import CalendarFilterView from '@/components/CalendarFilterView';
+import CalendarLegend from '@/components/CalendarLegend';
 
 const EVENT_COLOR = '#c0600c';
 
@@ -14,13 +15,14 @@ function exclusiveEnd(dateStr) {
 export default async function CalendarPage() {
   const supabase = await createClient();
 
-  const [{ data: offerings }, { data: events }, { data: regions }] = await Promise.all([
+  const [{ data: offerings }, { data: events }, { data: regions }, { data: allCourses }] = await Promise.all([
     supabase
       .from('course_offerings')
       .select('id, start_date, end_date, course_id, region_id, instructor_id, instructor_name, courses(code, name, series)')
       .order('start_date'),
     supabase.from('events').select('id, title, start_date, end_date, region_id').order('start_date'),
     supabase.from('regions').select('id, name, code').order('name'),
+    supabase.from('courses').select('id, code, name, series').order('code'),
   ]);
 
   const regionById = Object.fromEntries((regions ?? []).map((r) => [r.id, r]));
@@ -85,6 +87,8 @@ export default async function CalendarPage() {
       <div className="mt-6">
         <CalendarFilterView items={[...offeringItems, ...eventItems]} regions={regions ?? []} />
       </div>
+
+      <CalendarLegend regions={regions ?? []} courses={allCourses ?? []} />
     </div>
   );
 }
