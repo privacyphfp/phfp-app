@@ -58,7 +58,7 @@ export default async function SiteHeader() {
               href="/login"
               className="rounded-full bg-brand-blue px-4 py-1.5 text-white shadow-sm transition-colors hover:bg-brand-blue-dark"
             >
-              Sign Up / Log In
+              Log In / Sign Up
             </Link>
           )}
         </nav>
@@ -83,7 +83,7 @@ export default async function SiteHeader() {
               href="/login"
               className="flex items-center justify-center rounded-full bg-brand-blue px-4 py-2.5 text-white shadow-sm transition-colors hover:bg-brand-blue-dark"
             >
-              Sign Up / Log In
+              Log In / Sign Up
             </Link>
           )}
         </MobileMenu>

@@ -36,7 +36,7 @@ export default function Home() {
           href="/login"
           className="rounded-full bg-brand-blue px-6 py-2.5 font-medium text-white shadow-md shadow-brand-blue/20 transition-colors hover:bg-brand-blue-dark"
         >
-          Sign Up / Log In
+          Log In / Sign Up
         </Link>
         <Link
           href="/courses"

@@ -3,6 +3,7 @@ import { requireProfile } from '@/lib/auth';
 import { formatInstructorName } from '@/lib/formatInstructor';
 import { signReceiptUrls } from '@/lib/receiptUrl';
 import PaymentVerifyForm from '@/components/PaymentVerifyForm';
+import AttendanceStatusForm from '@/components/AttendanceStatusForm';
 import ReceiptUploadForm from '@/components/ReceiptUploadForm';
 import ExportEnrollmentsButton from '@/components/ExportEnrollmentsButton';
 
@@ -107,6 +108,7 @@ export default async function AdminOfferingRosterPage({ params }) {
                 initialAmountPaid={e.amount_paid}
                 initialVerified={e.payment_verified}
               />
+              <AttendanceStatusForm enrollmentId={e.id} initialStatus={e.status} />
 
               <div className="mt-2 flex flex-wrap items-center gap-3">
                 {e.receiptSignedUrl && (
