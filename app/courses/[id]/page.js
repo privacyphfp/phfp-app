@@ -193,6 +193,10 @@ export default async function CourseDetailPage({ params }) {
               </div>
             )}
           </div>
+
+          <Link href="/student" className="mt-3 inline-block text-sm text-brand-blue hover:underline">
+            ← Back to completing courses
+          </Link>
         </div>
       )}
 
