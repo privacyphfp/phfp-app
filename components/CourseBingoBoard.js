@@ -7,6 +7,7 @@ import { SERIES_LABELS } from '@/lib/courseSeries';
 // Level 1 -> Level 2) than alphabetical-by-code order.
 const HIGHER_LEVEL_CODES = new Set(['HC']);
 const ARHATIC_ORDER = ['AYP', 'AY1', 'AY2'];
+const HEALING_ORDER = ['BPH', 'APH', 'PSY', 'PCH', 'PSD'];
 
 // Healing-first reads better here than the default series order used
 // elsewhere (e.g. the public course-path diagram).
@@ -20,6 +21,9 @@ export default function CourseBingoBoard({ courses, completedCourseIds }) {
     let items = courses.filter((c) => c.series === series && !HIGHER_LEVEL_CODES.has(c.code));
     if (series === 'arhatic_yoga') {
       items = items.slice().sort((a, b) => ARHATIC_ORDER.indexOf(a.code) - ARHATIC_ORDER.indexOf(b.code));
+    }
+    if (series === 'healing') {
+      items = items.slice().sort((a, b) => HEALING_ORDER.indexOf(a.code) - HEALING_ORDER.indexOf(b.code));
     }
     return { key: series, label: SERIES_LABELS[series], items };
   }).filter((g) => g.items.length);
