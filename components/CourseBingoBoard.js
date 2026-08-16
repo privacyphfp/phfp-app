@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { SERIES_LABELS, SERIES_ORDER } from '@/lib/courseSeries';
+import { SERIES_LABELS } from '@/lib/courseSeries';
 
 // Higher Clairvoyance reads better as its own "Higher Level Courses" tile
 // group than lumped in with the rest of the Arhatic Yoga series, and the
@@ -8,11 +8,15 @@ import { SERIES_LABELS, SERIES_ORDER } from '@/lib/courseSeries';
 const HIGHER_LEVEL_CODES = new Set(['HC']);
 const ARHATIC_ORDER = ['AYP', 'AY1', 'AY2'];
 
+// Healing-first reads better here than the default series order used
+// elsewhere (e.g. the public course-path diagram).
+const BINGO_SERIES_ORDER = ['healing', 'spirituality', 'prosperity', 'arhatic_yoga'];
+
 // A "collect them all" progress board: every course in the catalog as a
 // tile, checked off once the student has completed it (via a completed
 // enrollment or a verified certificate).
 export default function CourseBingoBoard({ courses, completedCourseIds }) {
-  const groups = SERIES_ORDER.map((series) => {
+  const groups = BINGO_SERIES_ORDER.map((series) => {
     let items = courses.filter((c) => c.series === series && !HIGHER_LEVEL_CODES.has(c.code));
     if (series === 'arhatic_yoga') {
       items = items.slice().sort((a, b) => ARHATIC_ORDER.indexOf(a.code) - ARHATIC_ORDER.indexOf(b.code));
