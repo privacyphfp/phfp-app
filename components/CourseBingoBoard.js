@@ -10,7 +10,7 @@ const ARHATIC_ORDER = ['AYP', 'AY1', 'AY2'];
 
 // Healing-first reads better here than the default series order used
 // elsewhere (e.g. the public course-path diagram).
-const BINGO_SERIES_ORDER = ['healing', 'spirituality', 'prosperity', 'arhatic_yoga'];
+const BINGO_SERIES_ORDER = ['healing', 'spirituality', 'arhatic_yoga', 'prosperity'];
 
 // A "collect them all" progress board: every course in the catalog as a
 // tile, checked off once the student has completed it (via a completed
