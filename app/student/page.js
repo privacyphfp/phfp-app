@@ -63,18 +63,16 @@ export default async function StudentPage() {
           </Link>
         </div>
       )}
-      <div className="flex items-baseline justify-between">
-        <h1 className="text-2xl font-semibold text-brand-blue-dark">My Dashboard</h1>
-        <div className="flex gap-4 text-sm font-medium">
-          <Link href="/calendar" className="text-brand-blue hover:underline">
-            Calendar
-          </Link>
-          <Link href="/student/profile" className="text-brand-blue hover:underline">
-            My Profile
-          </Link>
-        </div>
-      </div>
+      <h1 className="text-2xl font-semibold text-brand-blue-dark">My Dashboard</h1>
       <p className="mt-1 text-brand-ink/60">Welcome, {profile?.full_name || 'Student'}.</p>
+
+      <Link
+        href="/student/profile"
+        className="mt-4 flex items-baseline justify-between rounded-xl border border-brand-blue/15 bg-white/60 p-3 shadow-sm transition-colors hover:bg-white/80 dark:bg-white/5 dark:hover:bg-white/10"
+      >
+        <span className="font-medium text-brand-ink">My Profile</span>
+        <span className="text-brand-blue">Edit →</span>
+      </Link>
 
       <section className="mt-8">
         <h2 className="text-xl font-semibold text-brand-ink/90">Upcoming Enrolled Courses</h2>
