@@ -222,7 +222,7 @@ export default async function CourseDetailPage({ params }) {
           <h1 className="mt-4 text-3xl font-semibold drop-shadow-sm sm:text-4xl">{course.name}</h1>
           {course.tagline && <p className="mt-2 text-lg text-white/90 italic">{course.tagline}</p>}
           <p className="mt-3 text-sm font-medium tracking-wide text-white/80 uppercase">
-            {course.duration_days} day{course.duration_days > 1 ? 's' : ''} · In-Person &amp; Online
+            {course.duration_days} day{course.duration_days > 1 ? 's' : ''}
           </p>
           <a
             href="#offerings"
