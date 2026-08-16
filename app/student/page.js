@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { requireProfile } from '@/lib/auth';
 import { computeEligibility } from '@/lib/eligibility';
 import { isProfileComplete } from '@/lib/profileCompleteness';
+import { signReceiptUrls } from '@/lib/receiptUrl';
 import EnrollButton from '@/components/EnrollButton';
 import CourseBingoBoard from '@/components/CourseBingoBoard';
 
@@ -22,7 +23,7 @@ export default async function StudentPage() {
       supabase
         .from('enrollments')
         .select(
-          'id, status, enrollment_type, course_offering_id, course_offerings(id, start_date, course_id, courses(name))'
+          'id, status, enrollment_type, amount_paid, payment_verified, receipt_url, course_offering_id, course_offerings(id, start_date, course_id, courses(name))'
         )
         .eq('student_id', user.id),
       supabase.from('certificates').select('course_id, verified').eq('student_id', user.id),
@@ -41,9 +42,12 @@ export default async function StudentPage() {
 
   const enrolledOfferingIds = new Set((myEnrollments ?? []).map((e) => e.course_offering_id));
 
-  const upcomingEnrollments = (myEnrollments ?? [])
-    .filter((e) => e.status !== 'cancelled' && (e.course_offerings?.start_date ?? '') >= today)
-    .sort((a, b) => (a.course_offerings?.start_date ?? '').localeCompare(b.course_offerings?.start_date ?? ''));
+  const upcomingEnrollments = await signReceiptUrls(
+    supabase,
+    (myEnrollments ?? [])
+      .filter((e) => e.status !== 'cancelled' && (e.course_offerings?.start_date ?? '') >= today)
+      .sort((a, b) => (a.course_offerings?.start_date ?? '').localeCompare(b.course_offerings?.start_date ?? ''))
+  );
 
   return (
     <div className="mx-auto w-full max-w-3xl p-8">
@@ -80,12 +84,33 @@ export default async function StudentPage() {
           {upcomingEnrollments.map((e) => (
             <li
               key={e.id}
-              className="flex items-baseline justify-between rounded-xl border border-brand-blue/15 bg-white/60 p-3 shadow-sm dark:bg-white/5"
+              className="rounded-xl border border-brand-blue/15 bg-white/60 p-3 shadow-sm dark:bg-white/5"
             >
-              <span className="font-medium text-brand-ink">{e.course_offerings?.courses?.name}</span>
-              <span className="text-brand-ink/50">
-                {e.course_offerings?.start_date} — {e.status}
-              </span>
+              <div className="flex items-baseline justify-between">
+                <span className="font-medium text-brand-ink">{e.course_offerings?.courses?.name}</span>
+                <span className="text-brand-ink/50">
+                  {e.course_offerings?.start_date} — {e.status}
+                </span>
+              </div>
+              {(e.amount_paid != null || e.receiptSignedUrl) && (
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-brand-ink/60">
+                  {e.amount_paid != null && (
+                    <span>
+                      Paid ₱{e.amount_paid} — {e.payment_verified ? 'Verified' : 'Pending verification'}
+                    </span>
+                  )}
+                  {e.receiptSignedUrl && (
+                    <a
+                      href={e.receiptSignedUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-brand-blue underline underline-offset-2"
+                    >
+                      View receipt
+                    </a>
+                  )}
+                </div>
+              )}
             </li>
           ))}
           {!upcomingEnrollments.length && <p className="text-brand-ink/50">No upcoming enrolled courses.</p>}

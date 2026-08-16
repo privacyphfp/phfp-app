@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { requireProfile } from '@/lib/auth';
 import { formatInstructorName } from '@/lib/formatInstructor';
 import CreateOfferingForm from './CreateOfferingForm';
@@ -60,11 +61,16 @@ export default async function AdminCoursesPage() {
         {(offerings ?? []).map((o) => (
           <div key={o.id} className="rounded-xl border border-brand-blue/15 bg-white/60 p-4 shadow-sm dark:bg-white/5">
             <div className="flex items-baseline justify-between">
-              <span className="font-medium text-brand-ink">{courseById[o.course_id]?.name ?? 'Unknown course'}</span>
-              <span className="rounded-full bg-brand-blue/10 px-2.5 py-0.5 text-xs font-medium text-brand-blue">
+              <Link href={`/admin/courses/${o.id}`} className="font-medium text-brand-ink hover:underline">
+                {courseById[o.course_id]?.name ?? 'Unknown course'}
+              </Link>
+              <Link
+                href={`/admin/courses/${o.id}`}
+                className="rounded-full bg-brand-blue/10 px-2.5 py-0.5 text-xs font-medium text-brand-blue hover:bg-brand-blue/20"
+              >
                 {enrollmentCounts[o.id] ?? 0}
                 {o.capacity ? ` / ${o.capacity}` : ''} enrolled
-              </span>
+              </Link>
             </div>
             <div className="mt-1 text-sm text-brand-ink/60">
               {o.start_date}

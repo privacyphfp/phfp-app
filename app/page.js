@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import logo from "@/public/logo.png";
 
 export default function Home() {
@@ -31,24 +32,18 @@ export default function Home() {
       </p>
 
       <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-        <a
-          href="/signup"
+        <Link
+          href="/login"
           className="rounded-full bg-brand-blue px-6 py-2.5 font-medium text-white shadow-md shadow-brand-blue/20 transition-colors hover:bg-brand-blue-dark"
         >
-          Sign Up
-        </a>
-        <a
+          Sign Up / Log In
+        </Link>
+        <Link
           href="/courses"
           className="rounded-full border border-brand-flame/40 bg-brand-amber/20 px-6 py-2.5 font-medium text-brand-flame transition-colors hover:bg-brand-amber/35"
         >
           Browse Courses
-        </a>
-        <a
-          href="/login"
-          className="rounded-full border border-brand-blue/30 px-6 py-2.5 font-medium text-brand-blue transition-colors hover:bg-brand-blue/10"
-        >
-          Log In
-        </a>
+        </Link>
       </div>
     </div>
   );
