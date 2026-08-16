@@ -127,7 +127,7 @@ export default async function CourseDetailPage({ params }) {
       </Link>
 
       <div
-        className="mt-3 grid grid-cols-1 gap-6 [grid-template-areas:'history''main'] lg:grid-cols-[280px_1fr] lg:items-start lg:gap-8 lg:[grid-template-areas:'history_main']"
+        className="mt-3 grid grid-cols-1 gap-6 [grid-template-areas:'main-top''history''offerings'] lg:grid-cols-[280px_1fr] lg:items-start lg:gap-8 lg:[grid-template-areas:'history_main-top''history_offerings']"
       >
         {user && (
           <aside className="[grid-area:history] rounded-xl border border-brand-blue/15 bg-white/60 p-4 lg:sticky lg:top-6 dark:bg-white/5">
@@ -198,7 +198,7 @@ export default async function CourseDetailPage({ params }) {
           </aside>
         )}
 
-        <div className="min-w-0 [grid-area:main]">
+        <div className="min-w-0 [grid-area:main-top]">
       <div
         className="relative overflow-hidden rounded-2xl px-6 py-10 text-center text-white shadow-lg sm:px-10 sm:py-16"
         style={{ background: `linear-gradient(135deg, ${SERIES_HEX[course.series]}, ${SERIES_HEX[course.series]}99)` }}
@@ -275,8 +275,10 @@ export default async function CourseDetailPage({ params }) {
           </ul>
         </div>
       )}
+        </div>
 
-      <h2 id="offerings" className="mt-8 scroll-mt-6 text-xl font-semibold text-brand-ink/90">
+        <div className="min-w-0 [grid-area:offerings]">
+      <h2 id="offerings" className="mt-8 scroll-mt-6 text-xl font-semibold text-brand-ink/90 lg:mt-0">
         Upcoming Offerings
       </h2>
       <ul className="mt-4 space-y-3">
