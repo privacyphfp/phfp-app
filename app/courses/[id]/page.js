@@ -233,8 +233,10 @@ export default async function CourseDetailPage({ params }) {
         </div>
       </div>
 
+      <p className="mt-6 text-center text-sm font-medium text-brand-blue-dark">Master Choa Kok Sui&rsquo;s {course.name}</p>
+
       {course.description && (
-        <p className="mt-6 text-center text-base leading-relaxed text-brand-ink/80 sm:text-lg">{course.description}</p>
+        <p className="mt-2 text-center text-base leading-relaxed text-brand-ink/80 sm:text-lg">{course.description}</p>
       )}
 
       {course.highlights?.length > 0 && (
