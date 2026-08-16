@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import PasswordInput from '@/components/PasswordInput';
 
 const DASHBOARD_ROLES = ['admin', 'marketing', 'accounting'];
 
@@ -68,9 +69,8 @@ export default function LoginPage() {
               Forgot password?
             </a>
           </div>
-          <input
+          <PasswordInput
             required
-            type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="mt-1 w-full rounded-lg border border-brand-blue/20 px-3 py-2 outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20 dark:bg-zinc-900"
