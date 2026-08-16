@@ -6,7 +6,10 @@ import { formatInstructorName } from '@/lib/formatInstructor';
 import { signCertificateUrls } from '@/lib/certificateUrl';
 import EnrollButton from '@/components/EnrollButton';
 import CertificateUploadForm from '@/components/CertificateUploadForm';
-import CertificateEditForm from '@/components/CertificateEditForm';
+
+function formatDateLong(isoDate) {
+  return new Date(`${isoDate}T00:00:00`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
 
 export async function generateMetadata({ params }) {
   const { id } = await params;
@@ -162,8 +165,10 @@ export default async function CourseDetailPage({ params }) {
               <p className="text-sm font-medium text-brand-ink/80">Certificate</p>
               {myCertificate ? (
                 <div className="mt-1 text-sm">
-                  <div className="flex flex-wrap items-center gap-3">
-                    {myCertificate.issued_date && <span className="text-brand-ink/60">Date: {myCertificate.issued_date}</span>}
+                  {myCertificate.issued_date && (
+                    <p className="text-brand-ink/60">Date Graduated: {formatDateLong(myCertificate.issued_date)}</p>
+                  )}
+                  <div className="mt-1 flex flex-wrap items-center gap-3">
                     {myCertificate.signedUrl && (
                       <a
                         href={myCertificate.signedUrl}
@@ -178,7 +183,6 @@ export default async function CourseDetailPage({ params }) {
                       {myCertificate.verified ? 'Verified' : 'Pending review'}
                     </span>
                   </div>
-                  <CertificateEditForm certificateId={myCertificate.id} initialIssuedDate={myCertificate.issued_date} />
                 </div>
               ) : (
                 <div className="mt-2">
