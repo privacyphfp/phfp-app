@@ -47,13 +47,23 @@ export default function ReceiptUploadForm({ enrollmentId, studentId }) {
     }
   }
 
+  const fileInputId = `receipt-file-${enrollmentId}`;
+
   return (
     <form onSubmit={handleSubmit} className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+      <label
+        htmlFor={fileInputId}
+        className="cursor-pointer rounded-full border border-brand-blue/30 bg-brand-blue/5 px-3 py-1 text-xs font-medium text-brand-blue transition-colors hover:border-brand-blue hover:bg-brand-blue/10"
+      >
+        Choose File to Upload
+      </label>
+      <span className="truncate text-xs text-brand-ink/50">{file ? file.name : 'No file chosen'}</span>
       <input
+        id={fileInputId}
         type="file"
         accept="image/*,.pdf"
         onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-        className="rounded-lg border border-brand-blue/20 px-2 py-1 text-xs outline-none dark:bg-zinc-900"
+        className="sr-only"
       />
       <button
         type="submit"

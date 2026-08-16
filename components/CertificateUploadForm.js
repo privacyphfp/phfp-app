@@ -71,15 +71,25 @@ export default function CertificateUploadForm({ studentId, courseId }) {
         />
       </label>
 
-      <label className="text-sm text-brand-ink/80">
+      <div className="text-sm text-brand-ink/80">
         Certificate File
+        <div className="mt-1 flex items-center gap-2">
+          <label
+            htmlFor="certificate-file"
+            className="cursor-pointer rounded-full border border-brand-blue/30 bg-brand-blue/5 px-3 py-1.5 text-xs font-medium text-brand-blue transition-colors hover:border-brand-blue hover:bg-brand-blue/10"
+          >
+            Choose File to Upload
+          </label>
+          <span className="truncate text-sm text-brand-ink/50">{file ? file.name : 'No file chosen'}</span>
+        </div>
         <input
+          id="certificate-file"
           type="file"
           accept="image/*,.pdf"
           onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          className={`${inputClass} px-2 py-1`}
+          className="sr-only"
         />
-      </label>
+      </div>
 
       <button
         type="submit"
