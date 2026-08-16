@@ -1,12 +1,32 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { SERIES_LABELS } from '@/lib/courseSeries';
+import { SERIES_LABELS, SERIES_HEX } from '@/lib/courseSeries';
 import { isProfileComplete } from '@/lib/profileCompleteness';
 import { formatInstructorName } from '@/lib/formatInstructor';
 import { signCertificateUrls } from '@/lib/certificateUrl';
 import EnrollButton from '@/components/EnrollButton';
 import CertificateUploadForm from '@/components/CertificateUploadForm';
 import CertificateEditForm from '@/components/CertificateEditForm';
+
+export async function generateMetadata({ params }) {
+  const { id } = await params;
+  const supabase = await createClient();
+  const { data: course } = await supabase.from('courses').select('name, tagline, description').eq('id', id).single();
+
+  if (!course) {
+    return { title: 'Course Not Found | PHFP App' };
+  }
+
+  const title = `${course.name} | PHFP — Pranic Healing Foundation of the Philippines`;
+  const description =
+    course.tagline || course.description || `Learn ${course.name} with the Pranic Healing Foundation of the Philippines.`;
+
+  return {
+    title,
+    description,
+    openGraph: { title, description },
+  };
+}
 
 export default async function CourseDetailPage({ params }) {
   const { id } = await params;
@@ -106,17 +126,69 @@ export default async function CourseDetailPage({ params }) {
         ← Back to Course Catalog
       </Link>
 
-      <div className="mt-3 flex flex-wrap items-center gap-3">
-        <h1 className="text-3xl font-semibold text-brand-blue-dark">{course.name}</h1>
-        <span className="rounded-full bg-brand-amber/20 px-3 py-1 text-xs font-medium whitespace-nowrap text-brand-flame">
-          {SERIES_LABELS[course.series]}
-        </span>
+      <div
+        className="relative mt-3 overflow-hidden rounded-2xl px-6 py-10 text-center text-white shadow-lg sm:px-10 sm:py-16"
+        style={{ background: `linear-gradient(135deg, ${SERIES_HEX[course.series]}, ${SERIES_HEX[course.series]}99)` }}
+      >
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(55% 45% at 20% 15%, rgba(255,255,255,0.25) 0%, transparent 70%), radial-gradient(45% 40% at 85% 90%, rgba(255,255,255,0.18) 0%, transparent 70%)',
+          }}
+        />
+        <div className="relative">
+          <span className="inline-block rounded-full bg-white/15 px-3 py-1 text-xs font-medium tracking-wide whitespace-nowrap text-white uppercase backdrop-blur-sm">
+            {SERIES_LABELS[course.series]}
+          </span>
+          <h1 className="mt-4 text-3xl font-semibold drop-shadow-sm sm:text-4xl">{course.name}</h1>
+          {course.tagline && <p className="mt-2 text-lg text-white/90 italic">{course.tagline}</p>}
+          <p className="mt-3 text-sm font-medium tracking-wide text-white/80 uppercase">
+            {course.duration_days} day{course.duration_days > 1 ? 's' : ''} · In-Person &amp; Online
+          </p>
+          <a
+            href="#offerings"
+            className="mt-6 inline-block rounded-full bg-white px-7 py-2.5 text-sm font-semibold text-brand-blue-dark shadow-md transition-transform hover:-translate-y-0.5 hover:shadow-lg"
+          >
+            Register Here →
+          </a>
+        </div>
       </div>
-      <p className="mt-1 text-brand-ink/60">
-        {course.duration_days} day{course.duration_days > 1 ? 's' : ''}
-      </p>
 
-      {course.description && <p className="mt-4 text-brand-ink/80">{course.description}</p>}
+      {course.description && (
+        <p className="mt-6 text-center text-base leading-relaxed text-brand-ink/80 sm:text-lg">{course.description}</p>
+      )}
+
+      {course.highlights?.length > 0 && (
+        <div className="mt-6 rounded-2xl border border-brand-gold/40 bg-brand-amber/5 p-6 shadow-sm">
+          <p className="text-center text-lg font-semibold text-brand-blue-dark">In This Workshop You Will:</p>
+          <ul className="mt-4 grid grid-cols-1 gap-x-6 gap-y-3 text-sm text-brand-ink/80 sm:grid-cols-2">
+            {course.highlights.map((h, i) => (
+              <li key={i} className="flex items-start gap-2.5">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-blue text-[10px] font-bold text-white">
+                  ✓
+                </span>
+                <span>{h}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {course.testimonial_quote && (
+        <blockquote className="relative mt-6 rounded-2xl border border-brand-blue/15 bg-brand-blue/5 p-6 text-sm text-brand-ink/80 shadow-sm">
+          <span className="absolute top-3 left-4 font-serif text-5xl leading-none text-brand-blue/20" aria-hidden>
+            “
+          </span>
+          <p className="relative pl-2 text-base italic sm:text-lg">{course.testimonial_quote}</p>
+          {course.testimonial_author && (
+            <footer className="relative mt-3 pl-2 text-xs font-medium text-brand-ink/50 not-italic">
+              — {course.testimonial_author}
+            </footer>
+          )}
+        </blockquote>
+      )}
 
       {requiredCourseIds.length > 0 && (
         <div className="mt-4 rounded-xl border border-brand-gold/40 bg-brand-amber/5 p-4">
@@ -200,7 +272,9 @@ export default async function CourseDetailPage({ params }) {
         </div>
       )}
 
-      <h2 className="mt-8 text-xl font-semibold text-brand-ink/90">Upcoming Offerings</h2>
+      <h2 id="offerings" className="mt-8 scroll-mt-6 text-xl font-semibold text-brand-ink/90">
+        Upcoming Offerings
+      </h2>
       <ul className="mt-4 space-y-3">
         {(offerings ?? []).map((o) => {
           const alreadyEnrolled = enrolledOfferingIds.has(o.id);
