@@ -58,8 +58,8 @@ export default function CertificateUploadForm({ studentId, courseId }) {
     'mt-1 w-full rounded-lg border border-brand-blue/20 px-3 py-1.5 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20 dark:bg-zinc-900';
 
   return (
-    <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-      {error && <p className="text-sm text-red-600 sm:col-span-2">{error}</p>}
+    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+      {error && <p className="text-sm text-red-600">{error}</p>}
 
       <label className="text-sm text-brand-ink/80">
         Date Completed
@@ -73,14 +73,14 @@ export default function CertificateUploadForm({ studentId, courseId }) {
 
       <div className="text-sm text-brand-ink/80">
         Certificate File
-        <div className="mt-1 flex items-center gap-2">
+        <div className="mt-1">
           <label
             htmlFor="certificate-file"
-            className="cursor-pointer rounded-full border border-brand-blue/30 bg-brand-blue/5 px-3 py-1.5 text-xs font-medium text-brand-blue transition-colors hover:border-brand-blue hover:bg-brand-blue/10"
+            className="inline-block cursor-pointer rounded-full border border-brand-blue/30 bg-brand-blue/5 px-3 py-1.5 text-xs font-medium text-brand-blue transition-colors hover:border-brand-blue hover:bg-brand-blue/10"
           >
             Choose File to Upload
           </label>
-          <span className="truncate text-sm text-brand-ink/50">{file ? file.name : 'No file chosen'}</span>
+          <p className="mt-1.5 truncate text-xs text-brand-ink/50">{file ? file.name : 'No file chosen'}</p>
         </div>
         <input
           id="certificate-file"
@@ -94,7 +94,7 @@ export default function CertificateUploadForm({ studentId, courseId }) {
       <button
         type="submit"
         disabled={loading}
-        className="sm:col-span-2 w-fit rounded-full bg-brand-blue px-5 py-2 text-sm font-medium text-white shadow-sm shadow-brand-blue/20 transition-colors hover:bg-brand-blue-dark disabled:opacity-50"
+        className="w-full rounded-full bg-brand-blue px-5 py-2 text-sm font-medium text-white shadow-sm shadow-brand-blue/20 transition-colors hover:bg-brand-blue-dark disabled:opacity-50"
       >
         {loading ? 'Uploading…' : 'Submit Certificate'}
       </button>
