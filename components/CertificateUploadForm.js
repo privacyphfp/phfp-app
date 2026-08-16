@@ -1,0 +1,93 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
+
+export default function CertificateUploadForm({ studentId, courseId }) {
+  const router = useRouter();
+  const [issuedDate, setIssuedDate] = useState('');
+  const [file, setFile] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError(null);
+
+    if (!file) {
+      setError('Please choose a file to upload.');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const supabase = createClient();
+      const ext = file.name.split('.').pop();
+      const path = `${studentId}/${courseId}-${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage.from('certificates').upload(path, file);
+      if (uploadError) {
+        setError(uploadError.message);
+        return;
+      }
+
+      const { error: insertError } = await supabase.from('certificates').insert({
+        student_id: studentId,
+        course_id: courseId,
+        file_url: path,
+        issued_date: issuedDate || null,
+      });
+      if (insertError) {
+        setError(insertError.message);
+        return;
+      }
+
+      setFile(null);
+      setIssuedDate('');
+      router.refresh();
+    } catch (err) {
+      setError(err.message ?? 'Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const inputClass =
+    'mt-1 w-full rounded-lg border border-brand-blue/20 px-3 py-1.5 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20 dark:bg-zinc-900';
+
+  return (
+    <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      {error && <p className="text-sm text-red-600 sm:col-span-2">{error}</p>}
+
+      <label className="text-sm text-brand-ink/80">
+        Date Completed
+        <input
+          type="date"
+          value={issuedDate}
+          onChange={(e) => setIssuedDate(e.target.value)}
+          className={inputClass}
+        />
+      </label>
+
+      <label className="text-sm text-brand-ink/80">
+        Certificate File
+        <input
+          type="file"
+          accept="image/*,.pdf"
+          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+          className={`${inputClass} px-2 py-1`}
+        />
+      </label>
+
+      <button
+        type="submit"
+        disabled={loading}
+        className="sm:col-span-2 w-fit rounded-full bg-brand-blue px-5 py-2 text-sm font-medium text-white shadow-sm shadow-brand-blue/20 transition-colors hover:bg-brand-blue-dark disabled:opacity-50"
+      >
+        {loading ? 'Uploading…' : 'Submit Certificate'}
+      </button>
+    </form>
+  );
+}

@@ -25,7 +25,7 @@ export default async function SiteHeader() {
   const roleLink = user
     ? role === 'admin'
       ? { href: '/admin', label: 'Admin Dashboard' }
-      : { href: '/student/profile', label: 'My Profile' }
+      : { href: '/student', label: 'My Dashboard' }
     : null;
 
   return (

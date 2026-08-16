@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { requireProfile } from '@/lib/auth';
+import { signCertificateUrls } from '@/lib/certificateUrl';
 import RoleAssignmentForm from '@/components/RoleAssignmentForm';
 import TitheAmountForm from '@/components/TitheAmountForm';
+import CertificateVerifyButton from '@/components/CertificateVerifyButton';
 
 function Field({ label, value }) {
   return (
@@ -16,7 +18,7 @@ export default async function AdminStudentDetailPage({ params }) {
   const { id } = await params;
   const { supabase } = await requireProfile(['admin']);
 
-  const [{ data: student }, { data: enrollments }, { data: regions }] = await Promise.all([
+  const [{ data: student }, { data: enrollments }, { data: regions }, { data: certificates }] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', id).single(),
     supabase
       .from('enrollments')
@@ -26,7 +28,14 @@ export default async function AdminStudentDetailPage({ params }) {
       .eq('student_id', id)
       .order('enrolled_at', { ascending: false }),
     supabase.from('regions').select('id, name').order('name'),
+    supabase
+      .from('certificates')
+      .select('id, course_id, file_url, issued_date, verified, courses(code, name)')
+      .eq('student_id', id)
+      .order('created_at', { ascending: false }),
   ]);
+
+  const certificatesWithUrls = await signCertificateUrls(supabase, certificates ?? []);
 
   if (!student) {
     return (
@@ -169,6 +178,38 @@ export default async function AdminStudentDetailPage({ params }) {
             </li>
           ))}
           {!(enrollments ?? []).length && <p className="text-brand-ink/50">No enrollments yet.</p>}
+        </ul>
+      </section>
+
+      <section className="mt-6 rounded-2xl border border-brand-gold/40 bg-white/70 p-6 shadow-sm dark:bg-white/5">
+        <h2 className="text-lg font-semibold text-brand-blue-dark">Certificates</h2>
+        <p className="mt-1 text-sm text-brand-ink/60">
+          Proof of courses taken before this student enrolled through the app. Verifying one counts it as completed
+          for prerequisite checks.
+        </p>
+        <ul className="mt-4 space-y-2">
+          {certificatesWithUrls.map((c) => (
+            <li key={c.id} className="rounded-xl border border-brand-blue/15 bg-brand-blue/5 p-3 text-sm">
+              <div className="flex items-baseline justify-between">
+                <span className="font-medium text-brand-ink">{c.courses?.code || c.courses?.name}</span>
+                <span className="text-brand-ink/50">{c.issued_date}</span>
+              </div>
+              <div className="mt-2 flex items-center gap-3">
+                {c.signedUrl && (
+                  <a
+                    href={c.signedUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-brand-blue underline underline-offset-2"
+                  >
+                    View file
+                  </a>
+                )}
+                <CertificateVerifyButton certificateId={c.id} verified={c.verified} />
+              </div>
+            </li>
+          ))}
+          {!certificatesWithUrls.length && <p className="text-brand-ink/50">No certificates submitted yet.</p>}
         </ul>
       </section>
     </div>

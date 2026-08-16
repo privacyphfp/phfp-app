@@ -3,7 +3,9 @@ import { createClient } from '@/lib/supabase/server';
 import { SERIES_LABELS } from '@/lib/courseSeries';
 import { isProfileComplete } from '@/lib/profileCompleteness';
 import { formatInstructorName } from '@/lib/formatInstructor';
+import { signCertificateUrls } from '@/lib/certificateUrl';
 import EnrollButton from '@/components/EnrollButton';
+import CertificateUploadForm from '@/components/CertificateUploadForm';
 
 export default async function CourseDetailPage({ params }) {
   const { id } = await params;
@@ -56,23 +58,40 @@ export default async function CourseDetailPage({ params }) {
   let completedCourseIds = new Set();
   let enrolledOfferingIds = new Set();
   let profileComplete = false;
+  let newEnrollments = [];
+  let reviewEnrollments = [];
+  let myCertificate = null;
 
   if (user) {
-    const [{ data: myEnrollments }, { data: myProfile }] = await Promise.all([
+    const [{ data: myEnrollments }, { data: myProfile }, { data: myCertificates }] = await Promise.all([
       supabase
         .from('enrollments')
-        .select('status, course_offering_id, course_offerings(course_id)')
+        .select('status, enrollment_type, course_offering_id, course_offerings(course_id, start_date)')
         .eq('student_id', user.id),
       supabase.from('profiles').select('*').eq('id', user.id).single(),
+      supabase.from('certificates').select('id, course_id, file_url, issued_date, verified').eq('student_id', user.id),
     ]);
 
-    completedCourseIds = new Set(
-      (myEnrollments ?? [])
+    completedCourseIds = new Set([
+      ...(myEnrollments ?? [])
         .filter((e) => e.status === 'completed')
-        .map((e) => e.course_offerings?.course_id)
-    );
+        .map((e) => e.course_offerings?.course_id),
+      ...(myCertificates ?? []).filter((c) => c.verified).map((c) => c.course_id),
+    ]);
     enrolledOfferingIds = new Set((myEnrollments ?? []).map((e) => e.course_offering_id));
     profileComplete = isProfileComplete(myProfile);
+
+    const myCourseEnrollments = (myEnrollments ?? [])
+      .filter((e) => e.course_offerings?.course_id === id)
+      .sort((a, b) => (a.course_offerings?.start_date ?? '').localeCompare(b.course_offerings?.start_date ?? ''));
+    newEnrollments = myCourseEnrollments.filter((e) => e.enrollment_type !== 'review');
+    reviewEnrollments = myCourseEnrollments.filter((e) => e.enrollment_type === 'review');
+
+    const rawCertificate = (myCertificates ?? []).find((c) => c.course_id === id) ?? null;
+    if (rawCertificate) {
+      const [signed] = await signCertificateUrls(supabase, [rawCertificate]);
+      myCertificate = signed;
+    }
   }
 
   const missingPrereqs = requiredCourseIds
@@ -86,9 +105,9 @@ export default async function CourseDetailPage({ params }) {
         ← Back to Course Catalog
       </Link>
 
-      <div className="mt-3 flex items-center gap-3">
+      <div className="mt-3 flex flex-wrap items-center gap-3">
         <h1 className="text-3xl font-semibold text-brand-blue-dark">{course.name}</h1>
-        <span className="rounded-full bg-brand-amber/20 px-3 py-1 text-xs font-medium text-brand-flame">
+        <span className="rounded-full bg-brand-amber/20 px-3 py-1 text-xs font-medium whitespace-nowrap text-brand-flame">
           {SERIES_LABELS[course.series]}
         </span>
       </div>
@@ -108,6 +127,67 @@ export default async function CourseDetailPage({ params }) {
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {user && (
+        <div className="mt-6 rounded-xl border border-brand-blue/15 bg-white/60 p-4 dark:bg-white/5">
+          <p className="text-sm font-medium text-brand-ink/80">My History with This Course</p>
+
+          <p className="mt-2 text-sm text-brand-ink/70">
+            {newEnrollments.length ? (
+              <>
+                First taken: {newEnrollments[0].course_offerings?.start_date} — {newEnrollments[0].status}
+              </>
+            ) : myCertificate?.verified ? (
+              <>Completed via verified certificate{myCertificate.issued_date ? ` (${myCertificate.issued_date})` : ''}</>
+            ) : (
+              'You haven’t taken this course yet.'
+            )}
+          </p>
+
+          {reviewEnrollments.length > 0 && (
+            <div className="mt-2 text-sm text-brand-ink/70">
+              Reviewed {reviewEnrollments.length} time{reviewEnrollments.length > 1 ? 's' : ''}:
+              <ul className="mt-1 list-inside list-disc">
+                {reviewEnrollments.map((e, i) => (
+                  <li key={i}>
+                    {e.course_offerings?.start_date} — {e.status}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="mt-3 border-t border-brand-blue/10 pt-3">
+            <p className="text-sm font-medium text-brand-ink/80">Certificate</p>
+            {myCertificate ? (
+              <div className="mt-1 flex items-center gap-3 text-sm">
+                {myCertificate.signedUrl && (
+                  <a
+                    href={myCertificate.signedUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-brand-blue underline underline-offset-2"
+                  >
+                    View file
+                  </a>
+                )}
+                <span className={myCertificate.verified ? 'text-brand-blue' : 'text-brand-flame'}>
+                  {myCertificate.verified ? 'Verified' : 'Pending review'}
+                </span>
+              </div>
+            ) : (
+              <div className="mt-2">
+                <p className="text-sm text-brand-ink/60">
+                  Already took this course before enrolling here? Upload proof and PHFP staff will verify it.
+                </p>
+                <div className="mt-2">
+                  <CertificateUploadForm studentId={user.id} courseId={id} />
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
