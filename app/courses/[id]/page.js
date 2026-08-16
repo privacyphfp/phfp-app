@@ -121,13 +121,86 @@ export default async function CourseDetailPage({ params }) {
   const eligible = missingPrereqs.length === 0;
 
   return (
-    <div className="mx-auto w-full max-w-2xl p-8">
+    <div className="mx-auto w-full max-w-4xl p-8">
       <Link href="/courses" className="text-sm text-brand-blue hover:underline">
         ← Back to Course Catalog
       </Link>
 
       <div
-        className="relative mt-3 overflow-hidden rounded-2xl px-6 py-10 text-center text-white shadow-lg sm:px-10 sm:py-16"
+        className="mt-3 grid grid-cols-1 gap-6 [grid-template-areas:'history''main'] lg:grid-cols-[280px_1fr] lg:items-start lg:gap-8 lg:[grid-template-areas:'history_main']"
+      >
+        {user && (
+          <aside className="[grid-area:history] rounded-xl border border-brand-blue/15 bg-white/60 p-4 lg:sticky lg:top-6 dark:bg-white/5">
+            <p className="text-sm font-medium text-brand-ink/80">My History with This Course</p>
+
+            <p className="mt-2 text-sm text-brand-ink/70">
+              {newEnrollments.length ? (
+                <>
+                  First taken: {newEnrollments[0].course_offerings?.start_date} — {newEnrollments[0].status}
+                </>
+              ) : myCertificate?.verified ? (
+                <>Completed via verified certificate{myCertificate.issued_date ? ` (${myCertificate.issued_date})` : ''}</>
+              ) : (
+                'You haven’t taken this course yet.'
+              )}
+            </p>
+
+            {reviewEnrollments.length > 0 && (
+              <div className="mt-2 text-sm text-brand-ink/70">
+                Reviewed {reviewEnrollments.length} time{reviewEnrollments.length > 1 ? 's' : ''}:
+                <ul className="mt-1 list-inside list-disc">
+                  {reviewEnrollments.map((e, i) => (
+                    <li key={i}>
+                      {e.course_offerings?.start_date} — {e.status}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div className="mt-3 border-t border-brand-blue/10 pt-3">
+              <p className="text-sm font-medium text-brand-ink/80">Certificate</p>
+              {myCertificate ? (
+                <div className="mt-1 text-sm">
+                  <div className="flex flex-wrap items-center gap-3">
+                    {myCertificate.issued_date && <span className="text-brand-ink/60">Date: {myCertificate.issued_date}</span>}
+                    {myCertificate.signedUrl && (
+                      <a
+                        href={myCertificate.signedUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-brand-blue underline underline-offset-2"
+                      >
+                        View file
+                      </a>
+                    )}
+                    <span className={myCertificate.verified ? 'text-brand-blue' : 'text-brand-flame'}>
+                      {myCertificate.verified ? 'Verified' : 'Pending review'}
+                    </span>
+                  </div>
+                  <CertificateEditForm certificateId={myCertificate.id} initialIssuedDate={myCertificate.issued_date} />
+                </div>
+              ) : (
+                <div className="mt-2">
+                  <p className="text-sm text-brand-ink/60">
+                    Already took this course before enrolling here? Upload proof and PHFP staff will verify it.
+                  </p>
+                  <div className="mt-2">
+                    <CertificateUploadForm studentId={user.id} courseId={id} />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <Link href="/student" className="mt-3 inline-block text-sm text-brand-blue hover:underline">
+              ← Back to completing courses
+            </Link>
+          </aside>
+        )}
+
+        <div className="min-w-0 [grid-area:main]">
+      <div
+        className="relative overflow-hidden rounded-2xl px-6 py-10 text-center text-white shadow-lg sm:px-10 sm:py-16"
         style={{ background: `linear-gradient(135deg, ${SERIES_HEX[course.series]}, ${SERIES_HEX[course.series]}99)` }}
       >
         <div
@@ -203,75 +276,6 @@ export default async function CourseDetailPage({ params }) {
         </div>
       )}
 
-      {user && (
-        <div className="mt-6 rounded-xl border border-brand-blue/15 bg-white/60 p-4 dark:bg-white/5">
-          <p className="text-sm font-medium text-brand-ink/80">My History with This Course</p>
-
-          <p className="mt-2 text-sm text-brand-ink/70">
-            {newEnrollments.length ? (
-              <>
-                First taken: {newEnrollments[0].course_offerings?.start_date} — {newEnrollments[0].status}
-              </>
-            ) : myCertificate?.verified ? (
-              <>Completed via verified certificate{myCertificate.issued_date ? ` (${myCertificate.issued_date})` : ''}</>
-            ) : (
-              'You haven’t taken this course yet.'
-            )}
-          </p>
-
-          {reviewEnrollments.length > 0 && (
-            <div className="mt-2 text-sm text-brand-ink/70">
-              Reviewed {reviewEnrollments.length} time{reviewEnrollments.length > 1 ? 's' : ''}:
-              <ul className="mt-1 list-inside list-disc">
-                {reviewEnrollments.map((e, i) => (
-                  <li key={i}>
-                    {e.course_offerings?.start_date} — {e.status}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          <div className="mt-3 border-t border-brand-blue/10 pt-3">
-            <p className="text-sm font-medium text-brand-ink/80">Certificate</p>
-            {myCertificate ? (
-              <div className="mt-1 text-sm">
-                <div className="flex flex-wrap items-center gap-3">
-                  {myCertificate.issued_date && <span className="text-brand-ink/60">Date: {myCertificate.issued_date}</span>}
-                  {myCertificate.signedUrl && (
-                    <a
-                      href={myCertificate.signedUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-brand-blue underline underline-offset-2"
-                    >
-                      View file
-                    </a>
-                  )}
-                  <span className={myCertificate.verified ? 'text-brand-blue' : 'text-brand-flame'}>
-                    {myCertificate.verified ? 'Verified' : 'Pending review'}
-                  </span>
-                </div>
-                <CertificateEditForm certificateId={myCertificate.id} initialIssuedDate={myCertificate.issued_date} />
-              </div>
-            ) : (
-              <div className="mt-2">
-                <p className="text-sm text-brand-ink/60">
-                  Already took this course before enrolling here? Upload proof and PHFP staff will verify it.
-                </p>
-                <div className="mt-2">
-                  <CertificateUploadForm studentId={user.id} courseId={id} />
-                </div>
-              </div>
-            )}
-          </div>
-
-          <Link href="/student" className="mt-3 inline-block text-sm text-brand-blue hover:underline">
-            ← Back to completing courses
-          </Link>
-        </div>
-      )}
-
       <h2 id="offerings" className="mt-8 scroll-mt-6 text-xl font-semibold text-brand-ink/90">
         Upcoming Offerings
       </h2>
@@ -323,6 +327,8 @@ export default async function CourseDetailPage({ params }) {
         })}
         {!(offerings ?? []).length && <p className="text-brand-ink/50">No offerings scheduled yet.</p>}
       </ul>
+        </div>
+      </div>
     </div>
   );
 }
