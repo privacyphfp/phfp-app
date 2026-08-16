@@ -6,6 +6,7 @@ import { formatInstructorName } from '@/lib/formatInstructor';
 import { signCertificateUrls } from '@/lib/certificateUrl';
 import EnrollButton from '@/components/EnrollButton';
 import CertificateUploadForm from '@/components/CertificateUploadForm';
+import CertificateEditForm from '@/components/CertificateEditForm';
 
 export default async function CourseDetailPage({ params }) {
   const { id } = await params;
@@ -162,20 +163,24 @@ export default async function CourseDetailPage({ params }) {
           <div className="mt-3 border-t border-brand-blue/10 pt-3">
             <p className="text-sm font-medium text-brand-ink/80">Certificate</p>
             {myCertificate ? (
-              <div className="mt-1 flex items-center gap-3 text-sm">
-                {myCertificate.signedUrl && (
-                  <a
-                    href={myCertificate.signedUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-brand-blue underline underline-offset-2"
-                  >
-                    View file
-                  </a>
-                )}
-                <span className={myCertificate.verified ? 'text-brand-blue' : 'text-brand-flame'}>
-                  {myCertificate.verified ? 'Verified' : 'Pending review'}
-                </span>
+              <div className="mt-1 text-sm">
+                <div className="flex flex-wrap items-center gap-3">
+                  {myCertificate.issued_date && <span className="text-brand-ink/60">Date: {myCertificate.issued_date}</span>}
+                  {myCertificate.signedUrl && (
+                    <a
+                      href={myCertificate.signedUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-brand-blue underline underline-offset-2"
+                    >
+                      View file
+                    </a>
+                  )}
+                  <span className={myCertificate.verified ? 'text-brand-blue' : 'text-brand-flame'}>
+                    {myCertificate.verified ? 'Verified' : 'Pending review'}
+                  </span>
+                </div>
+                <CertificateEditForm certificateId={myCertificate.id} initialIssuedDate={myCertificate.issued_date} />
               </div>
             ) : (
               <div className="mt-2">
