@@ -28,6 +28,7 @@ export default function CourseBingoBoard({ courses, completedCourseIds }) {
                   <Link
                     key={c.id}
                     href={`/courses/${c.id}`}
+                    title={c.name}
                     className={`relative rounded-xl border p-3 text-center shadow-sm transition-transform hover:-translate-y-0.5 ${
                       done
                         ? 'border-brand-blue bg-brand-blue/10 text-brand-blue'
