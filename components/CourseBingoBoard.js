@@ -1,14 +1,29 @@
 import Link from 'next/link';
 import { SERIES_LABELS, SERIES_ORDER } from '@/lib/courseSeries';
 
+// Higher Clairvoyance reads better as its own "Higher Level Courses" tile
+// group than lumped in with the rest of the Arhatic Yoga series, and the
+// Arhatic Yoga courses read better in curriculum order (Preparatory ->
+// Level 1 -> Level 2) than alphabetical-by-code order.
+const HIGHER_LEVEL_CODES = new Set(['HC']);
+const ARHATIC_ORDER = ['AYP', 'AY1', 'AY2'];
+
 // A "collect them all" progress board: every course in the catalog as a
 // tile, checked off once the student has completed it (via a completed
 // enrollment or a verified certificate).
 export default function CourseBingoBoard({ courses, completedCourseIds }) {
-  const groups = SERIES_ORDER.map((series) => ({
-    series,
-    items: courses.filter((c) => c.series === series),
-  })).filter((g) => g.items.length);
+  const groups = SERIES_ORDER.map((series) => {
+    let items = courses.filter((c) => c.series === series && !HIGHER_LEVEL_CODES.has(c.code));
+    if (series === 'arhatic_yoga') {
+      items = items.slice().sort((a, b) => ARHATIC_ORDER.indexOf(a.code) - ARHATIC_ORDER.indexOf(b.code));
+    }
+    return { key: series, label: SERIES_LABELS[series], items };
+  }).filter((g) => g.items.length);
+
+  const higherLevelCourses = courses.filter((c) => HIGHER_LEVEL_CODES.has(c.code));
+  if (higherLevelCourses.length) {
+    groups.push({ key: 'higher_level', label: 'Higher Level Courses', items: higherLevelCourses });
+  }
 
   const doneCount = courses.filter((c) => completedCourseIds.has(c.id)).length;
 
@@ -19,8 +34,8 @@ export default function CourseBingoBoard({ courses, completedCourseIds }) {
       </p>
       <div className="mt-3 space-y-4">
         {groups.map((group) => (
-          <div key={group.series}>
-            <p className="text-xs font-medium tracking-wide text-brand-ink/40 uppercase">{SERIES_LABELS[group.series]}</p>
+          <div key={group.key}>
+            <p className="text-xs font-medium tracking-wide text-brand-ink/40 uppercase">{group.label}</p>
             <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
               {group.items.map((c) => {
                 const done = completedCourseIds.has(c.id);
