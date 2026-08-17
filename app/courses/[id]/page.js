@@ -11,6 +11,13 @@ function formatDateLong(isoDate) {
   return new Date(`${isoDate}T00:00:00`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
+// Hero background photo per course, where the org has supplied one — a
+// colored gradient (still built from the course's series color) sits over
+// the photo as a tint so the white hero text stays readable.
+const HERO_IMAGE_BY_CODE = {
+  BPH: '/courses/basic-pranic-healing.png',
+};
+
 export async function generateMetadata({ params }) {
   const { id } = await params;
   const supabase = await createClient();
@@ -205,7 +212,15 @@ export default async function CourseDetailPage({ params }) {
         <div className="min-w-0 [grid-area:main-top]">
       <div
         className="relative overflow-hidden rounded-2xl px-6 py-10 text-center text-white shadow-lg sm:px-10 sm:py-16"
-        style={{ background: `linear-gradient(135deg, ${SERIES_HEX[course.series]}, ${SERIES_HEX[course.series]}99)` }}
+        style={
+          HERO_IMAGE_BY_CODE[course.code]
+            ? {
+                background: `linear-gradient(135deg, ${SERIES_HEX[course.series]}dd, ${SERIES_HEX[course.series]}aa), url(${HERO_IMAGE_BY_CODE[course.code]})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+              }
+            : { background: `linear-gradient(135deg, ${SERIES_HEX[course.series]}, ${SERIES_HEX[course.series]}99)` }
+        }
       >
         <div
           aria-hidden
@@ -215,6 +230,32 @@ export default async function CourseDetailPage({ params }) {
               'radial-gradient(55% 45% at 20% 15%, rgba(255,255,255,0.25) 0%, transparent 70%), radial-gradient(45% 40% at 85% 90%, rgba(255,255,255,0.18) 0%, transparent 70%)',
           }}
         />
+        {!HERO_IMAGE_BY_CODE[course.code] && (
+        <>
+        <svg
+          aria-hidden
+          className="pointer-events-none absolute -right-16 -bottom-24 h-80 w-80 text-white/15 sm:h-96 sm:w-96"
+          viewBox="0 0 200 200"
+          fill="none"
+        >
+          <circle cx="100" cy="100" r="30" stroke="currentColor" strokeWidth="1" />
+          <circle cx="100" cy="100" r="55" stroke="currentColor" strokeWidth="1" />
+          <circle cx="100" cy="100" r="80" stroke="currentColor" strokeWidth="1" />
+          <circle cx="100" cy="100" r="105" stroke="currentColor" strokeWidth="1" />
+          <circle cx="100" cy="100" r="130" stroke="currentColor" strokeWidth="1" />
+        </svg>
+        <svg
+          aria-hidden
+          className="pointer-events-none absolute -top-10 -left-10 h-40 w-40 text-white/10 sm:h-52 sm:w-52"
+          viewBox="0 0 200 200"
+          fill="none"
+        >
+          <circle cx="100" cy="100" r="45" stroke="currentColor" strokeWidth="1" />
+          <circle cx="100" cy="100" r="75" stroke="currentColor" strokeWidth="1" />
+          <circle cx="100" cy="100" r="105" stroke="currentColor" strokeWidth="1" />
+        </svg>
+        </>
+        )}
         <div className="relative">
           <span className="inline-block rounded-full bg-white/15 px-3 py-1 text-xs font-medium tracking-wide whitespace-nowrap text-white uppercase backdrop-blur-sm">
             {SERIES_LABELS[course.series]}
