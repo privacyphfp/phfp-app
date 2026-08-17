@@ -149,7 +149,7 @@ export default async function StudentPage() {
 
       <section className="mt-10">
         <h2 className="text-xl font-semibold text-brand-ink/90">Available Offerings</h2>
-        <ul className="mt-4 space-y-3">
+        <ul className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
           {(offerings ?? []).map((o) => {
             const elig = eligibility[o.course_id] ?? { eligible: true, missing: [] };
             const alreadyEnrolled = enrolledOfferingIds.has(o.id);
