@@ -236,7 +236,14 @@ export default async function CourseDetailPage({ params }) {
 
       {HERO_IMAGE_BY_CODE[course.code] && (
         <div className="relative mt-3 h-48 w-full overflow-hidden rounded-2xl shadow-lg sm:h-64">
-          <Image src={HERO_IMAGE_BY_CODE[course.code]} alt="" fill sizes="(min-width: 1024px) 700px, 100vw" className="object-cover" />
+          <Image
+            src={HERO_IMAGE_BY_CODE[course.code]}
+            alt=""
+            fill
+            priority
+            sizes="(min-width: 1024px) 700px, 100vw"
+            className="object-cover"
+          />
           <a
             href="#offerings"
             className="absolute right-4 bottom-4 inline-block rounded-full bg-white px-7 py-2.5 text-sm font-semibold text-brand-blue-dark shadow-md transition-transform hover:-translate-y-0.5 hover:shadow-lg"
