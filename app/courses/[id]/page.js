@@ -219,8 +219,8 @@ export default async function CourseDetailPage({ params }) {
         >
           {SERIES_LABELS[course.series]}
         </span>
-        <FitHeading text={`MCKS ${course.name} Course`} className="mt-2 font-semibold text-brand-ink" />
-        {course.tagline && <p className="mt-1 text-lg text-brand-ink/70 italic">{course.tagline}</p>}
+        <FitHeading text={`MCKS ${course.name} Course`} className="mt-2 leading-tight font-semibold text-brand-ink" />
+        {course.tagline && <p className="mt-0.5 text-lg leading-tight text-brand-ink/70 italic">{course.tagline}</p>}
         <p className="mt-1 text-sm font-medium tracking-wide text-brand-ink/50 uppercase">
           {course.duration_days} day{course.duration_days > 1 ? 's' : ''}
         </p>
