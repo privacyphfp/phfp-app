@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { SERIES_LABELS } from '@/lib/courseSeries';
+import CourseIcon from '@/components/CourseIcon';
 
 // Higher Clairvoyance reads better as its own "Higher Level Courses" tile
 // group than lumped in with the rest of the Arhatic Yoga series, and the
@@ -63,7 +64,10 @@ export default function CourseBingoBoard({ courses, completedCourseIds }) {
                         ✓
                       </span>
                     )}
-                    <div className="text-xs font-semibold">{c.code}</div>
+                    <div className="flex items-center justify-center gap-1 text-xs font-semibold">
+                      <CourseIcon code={c.code} size={14} />
+                      {c.code}
+                    </div>
                   </Link>
                 );
               })}
