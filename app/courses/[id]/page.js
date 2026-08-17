@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { createClient } from '@/lib/supabase/server';
 import { SERIES_LABELS, SERIES_HEX } from '@/lib/courseSeries';
 import { isProfileComplete } from '@/lib/profileCompleteness';
@@ -210,71 +211,41 @@ export default async function CourseDetailPage({ params }) {
         )}
 
         <div className="min-w-0 [grid-area:main-top]">
-      <div
-        className="relative overflow-hidden rounded-2xl px-6 py-10 text-center text-white shadow-lg sm:px-10 sm:py-16"
-        style={
-          HERO_IMAGE_BY_CODE[course.code]
-            ? {
-                background: `linear-gradient(135deg, ${SERIES_HEX[course.series]}dd, ${SERIES_HEX[course.series]}aa), url(${HERO_IMAGE_BY_CODE[course.code]})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-              }
-            : { background: `linear-gradient(135deg, ${SERIES_HEX[course.series]}, ${SERIES_HEX[course.series]}99)` }
-        }
-      >
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background:
-              'radial-gradient(55% 45% at 20% 15%, rgba(255,255,255,0.25) 0%, transparent 70%), radial-gradient(45% 40% at 85% 90%, rgba(255,255,255,0.18) 0%, transparent 70%)',
-          }}
-        />
+      <div className="text-center">
+        <span
+          className="inline-block rounded-full px-3 py-1 text-xs font-medium tracking-wide whitespace-nowrap text-white uppercase"
+          style={{ backgroundColor: SERIES_HEX[course.series] }}
+        >
+          {SERIES_LABELS[course.series]}
+        </span>
+        <h1 className="mt-4 overflow-hidden text-xl font-semibold text-ellipsis whitespace-nowrap text-brand-ink sm:text-3xl lg:text-4xl">
+          MCKS {course.name} Course
+        </h1>
+        {course.tagline && <p className="mt-2 text-lg text-brand-ink/70 italic">{course.tagline}</p>}
+        <p className="mt-3 text-sm font-medium tracking-wide text-brand-ink/50 uppercase">
+          {course.duration_days} day{course.duration_days > 1 ? 's' : ''}
+        </p>
         {!HERO_IMAGE_BY_CODE[course.code] && (
-        <>
-        <svg
-          aria-hidden
-          className="pointer-events-none absolute -right-16 -bottom-24 h-80 w-80 text-white/15 sm:h-96 sm:w-96"
-          viewBox="0 0 200 200"
-          fill="none"
-        >
-          <circle cx="100" cy="100" r="30" stroke="currentColor" strokeWidth="1" />
-          <circle cx="100" cy="100" r="55" stroke="currentColor" strokeWidth="1" />
-          <circle cx="100" cy="100" r="80" stroke="currentColor" strokeWidth="1" />
-          <circle cx="100" cy="100" r="105" stroke="currentColor" strokeWidth="1" />
-          <circle cx="100" cy="100" r="130" stroke="currentColor" strokeWidth="1" />
-        </svg>
-        <svg
-          aria-hidden
-          className="pointer-events-none absolute -top-10 -left-10 h-40 w-40 text-white/10 sm:h-52 sm:w-52"
-          viewBox="0 0 200 200"
-          fill="none"
-        >
-          <circle cx="100" cy="100" r="45" stroke="currentColor" strokeWidth="1" />
-          <circle cx="100" cy="100" r="75" stroke="currentColor" strokeWidth="1" />
-          <circle cx="100" cy="100" r="105" stroke="currentColor" strokeWidth="1" />
-        </svg>
-        </>
-        )}
-        <div className="relative">
-          <span className="inline-block rounded-full bg-white/15 px-3 py-1 text-xs font-medium tracking-wide whitespace-nowrap text-white uppercase backdrop-blur-sm">
-            {SERIES_LABELS[course.series]}
-          </span>
-          <h1 className="mt-4 text-3xl font-semibold drop-shadow-sm sm:text-4xl">{course.name}</h1>
-          {course.tagline && <p className="mt-2 text-lg text-white/90 italic">{course.tagline}</p>}
-          <p className="mt-3 text-sm font-medium tracking-wide text-white/80 uppercase">
-            {course.duration_days} day{course.duration_days > 1 ? 's' : ''}
-          </p>
           <a
             href="#offerings"
-            className="mt-6 inline-block rounded-full bg-white px-7 py-2.5 text-sm font-semibold text-brand-blue-dark shadow-md transition-transform hover:-translate-y-0.5 hover:shadow-lg"
+            className="mt-6 inline-block rounded-full bg-brand-blue px-7 py-2.5 text-sm font-semibold text-white shadow-md transition-transform hover:-translate-y-0.5 hover:shadow-lg"
+          >
+            Register Here →
+          </a>
+        )}
+      </div>
+
+      {HERO_IMAGE_BY_CODE[course.code] && (
+        <div className="relative mt-3 h-48 w-full overflow-hidden rounded-2xl shadow-lg sm:h-64">
+          <Image src={HERO_IMAGE_BY_CODE[course.code]} alt="" fill sizes="(min-width: 1024px) 700px, 100vw" className="object-cover" />
+          <a
+            href="#offerings"
+            className="absolute right-4 bottom-4 inline-block rounded-full bg-white px-7 py-2.5 text-sm font-semibold text-brand-blue-dark shadow-md transition-transform hover:-translate-y-0.5 hover:shadow-lg"
           >
             Register Here →
           </a>
         </div>
-      </div>
-
-      <p className="mt-6 text-center text-sm font-medium text-brand-blue-dark">Master Choa Kok Sui&rsquo;s {course.name}</p>
+      )}
 
       {course.description && (
         <p className="mt-2 text-center text-base leading-relaxed text-brand-ink/80 sm:text-lg">{course.description}</p>
