@@ -17,7 +17,7 @@ function formatDateLong(isoDate) {
 // colored gradient (still built from the course's series color) sits over
 // the photo as a tint so the white hero text stays readable.
 const HERO_IMAGE_BY_CODE = {
-  BPH: '/courses/basic-pranic-healing.png',
+  BPH: '/courses/basic-pranic-healing.jpg',
 };
 
 export async function generateMetadata({ params }) {
