@@ -7,6 +7,7 @@ import { formatInstructorName } from '@/lib/formatInstructor';
 import { signCertificateUrls } from '@/lib/certificateUrl';
 import EnrollButton from '@/components/EnrollButton';
 import CertificateUploadForm from '@/components/CertificateUploadForm';
+import FitHeading from '@/components/FitHeading';
 
 function formatDateLong(isoDate) {
   return new Date(`${isoDate}T00:00:00`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
@@ -218,11 +219,9 @@ export default async function CourseDetailPage({ params }) {
         >
           {SERIES_LABELS[course.series]}
         </span>
-        <h1 className="mt-4 overflow-hidden text-xl font-semibold text-ellipsis whitespace-nowrap text-brand-ink sm:text-3xl lg:text-4xl">
-          MCKS {course.name} Course
-        </h1>
-        {course.tagline && <p className="mt-2 text-lg text-brand-ink/70 italic">{course.tagline}</p>}
-        <p className="mt-3 text-sm font-medium tracking-wide text-brand-ink/50 uppercase">
+        <FitHeading text={`MCKS ${course.name} Course`} className="mt-2 font-semibold text-brand-ink" />
+        {course.tagline && <p className="mt-1 text-lg text-brand-ink/70 italic">{course.tagline}</p>}
+        <p className="mt-1 text-sm font-medium tracking-wide text-brand-ink/50 uppercase">
           {course.duration_days} day{course.duration_days > 1 ? 's' : ''}
         </p>
         {!HERO_IMAGE_BY_CODE[course.code] && (
@@ -248,7 +247,7 @@ export default async function CourseDetailPage({ params }) {
       )}
 
       {course.description && (
-        <p className="mt-2 text-center text-base leading-relaxed text-brand-ink/80 sm:text-lg">{course.description}</p>
+        <p className="mt-6 text-center text-base leading-relaxed text-brand-ink/80 sm:text-lg">{course.description}</p>
       )}
 
       {course.highlights?.length > 0 && (
