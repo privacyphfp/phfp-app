@@ -9,7 +9,13 @@ export default async function AdminReportsPage() {
 
   const [{ data: courses }, { data: students }] = await Promise.all([
     supabase.from('courses').select('id, code, name').order('code'),
-    supabase.from('profiles').select('id, full_name, first_name, last_name, email, regions ( name )').order('full_name'),
+    // regions!region_id disambiguates the join: profiles has two foreign
+    // keys into regions (region_id and managed_region_id), so a bare
+    // `regions ( name )` embed is ambiguous and PostgREST errors on it —
+    // silently, from here, since the destructured result is never checked
+    // for `error`. That was making the whole students list come back
+    // empty, which is why the Student Balance search never matched anything.
+    supabase.from('profiles').select('id, full_name, first_name, last_name, email, regions!region_id ( name )').order('full_name'),
   ]);
 
   return (

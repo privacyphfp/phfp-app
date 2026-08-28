@@ -84,7 +84,7 @@ export default function ReportsPanel({ courses, students }) {
       </div>
 
       <div className="mt-6">
-        {tab === 'export' && <StudentExportTab />}
+        {tab === 'export' && <StudentExportTab courses={courses} />}
         {tab === 'summary' && <ClassSummaryTab />}
         {tab === 'payments' && <PaymentBalanceTab courses={courses} />}
         {tab === 'studentBalance' && <StudentBalanceTab students={students} />}
@@ -224,10 +224,11 @@ const COLUMN_GROUPS = [
 ];
 const ALL_COLUMNS = COLUMN_GROUPS.flatMap((g) => g.columns);
 
-function StudentExportTab() {
+function StudentExportTab({ courses }) {
   const [checked, setChecked] = useState(() => Object.fromEntries(ALL_COLUMNS.map(([key, , def]) => [key, def])));
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+  const [courseId, setCourseId] = useState('all');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null); // { header, rows }
@@ -264,6 +265,7 @@ function StudentExportTab() {
         );
       if (from) query = query.gte('course_offerings.start_date', from);
       if (to) query = query.lte('course_offerings.start_date', to);
+      if (courseId !== 'all') query = query.eq('course_offerings.course_id', courseId);
 
       const [{ data: enrollments, error: enrollError }, { data: certificates, error: certError }] = await Promise.all([
         query,
@@ -357,10 +359,27 @@ function StudentExportTab() {
     <div>
       <p className="text-sm text-brand-ink/60">Pick the columns to include, then preview before exporting.</p>
 
-      <div className="mt-4">
-        <p className="text-xs font-semibold tracking-wide text-brand-ink/40 uppercase">Date of course (optional)</p>
-        <div className="mt-2">
-          <DateRangeInputs from={from} to={to} setFrom={(v) => { setFrom(v); setResult(null); }} setTo={(v) => { setTo(v); setResult(null); }} />
+      <div className="mt-4 flex flex-wrap items-end gap-6">
+        <div>
+          <p className="text-xs font-semibold tracking-wide text-brand-ink/40 uppercase">Date of course (optional)</p>
+          <div className="mt-2">
+            <DateRangeInputs from={from} to={to} setFrom={(v) => { setFrom(v); setResult(null); }} setTo={(v) => { setTo(v); setResult(null); }} />
+          </div>
+        </div>
+        <div>
+          <p className="text-xs font-semibold tracking-wide text-brand-ink/40 uppercase">Course (optional)</p>
+          <select
+            value={courseId}
+            onChange={(e) => { setCourseId(e.target.value); setResult(null); }}
+            className="mt-2 block rounded-lg border border-brand-blue/20 px-3 py-1.5 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20 dark:bg-zinc-900"
+          >
+            <option value="all">All courses</option>
+            {courses.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.code} — {c.name}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -425,11 +444,18 @@ function StudentExportTab() {
 // Tab 2: classes conducted + new/review totals per course, for a date range
 // ============================================================
 
+const CURRENT_YEAR = new Date().getFullYear();
+const YEAR_OPTIONS = Array.from({ length: 12 }, (_, i) => CURRENT_YEAR - i);
+
+function lastDayOfMonth(yyyyMm) {
+  const [y, m] = yyyyMm.split('-').map(Number);
+  return new Date(y, m, 0).getDate();
+}
+
 function ClassSummaryTab() {
-  const today = new Date().toISOString().slice(0, 10);
-  const [from, setFrom] = useState(`${new Date().getFullYear()}-01-01`);
-  const [to, setTo] = useState(today);
   const [groupBy, setGroupBy] = useState('monthly');
+  const [year, setYear] = useState(String(CURRENT_YEAR));
+  const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
   const [rows, setRows] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -438,6 +464,9 @@ function ClassSummaryTab() {
     setLoading(true);
     setError(null);
     setRows(null);
+
+    const from = groupBy === 'yearly' ? `${year}-01-01` : `${month}-01`;
+    const to = groupBy === 'yearly' ? `${year}-12-31` : `${month}-${String(lastDayOfMonth(month)).padStart(2, '0')}`;
 
     try {
       const supabase = createClient();
@@ -497,7 +526,7 @@ function ClassSummaryTab() {
     if (!rows) return;
     const header = [groupBy === 'yearly' ? 'Year' : 'Month', 'Course', 'Course Code', 'Date of Course', 'Instructor', 'New', 'Review', 'Total'];
     const csvRows = rows.map((r) => [r.period, r.course, r.code, r.date, r.instructor, r.newCount, r.reviewCount, r.newCount + r.reviewCount]);
-    downloadCsv(`phfp-class-summary-${from}-to-${to}`, header, csvRows);
+    downloadCsv(`phfp-class-summary-${groupBy === 'yearly' ? year : month}`, header, csvRows);
   }
 
   const previewRows = useMemo(
@@ -512,7 +541,6 @@ function ClassSummaryTab() {
         enrollments — organized yearly or monthly.
       </p>
       <div className="mt-4 flex flex-wrap items-end gap-4">
-        <DateRangeInputs from={from} to={to} setFrom={setFrom} setTo={setTo} />
         <label className="text-sm text-brand-ink/70">
           Organize by
           <select
@@ -524,6 +552,32 @@ function ClassSummaryTab() {
             <option value="yearly">Yearly</option>
           </select>
         </label>
+        {groupBy === 'yearly' ? (
+          <label className="text-sm text-brand-ink/70">
+            Year
+            <select
+              value={year}
+              onChange={(e) => setYear(e.target.value)}
+              className="mt-1 block rounded-lg border border-brand-blue/20 px-3 py-1.5 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20 dark:bg-zinc-900"
+            >
+              {YEAR_OPTIONS.map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <label className="text-sm text-brand-ink/70">
+            Month
+            <input
+              type="month"
+              value={month}
+              onChange={(e) => setMonth(e.target.value)}
+              className="mt-1 block rounded-lg border border-brand-blue/20 px-3 py-1.5 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20 dark:bg-zinc-900"
+            />
+          </label>
+        )}
         <button
           type="button"
           onClick={run}
