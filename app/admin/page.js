@@ -30,7 +30,7 @@ export default async function AdminPage() {
     supabase
       .from('enrollments')
       .select(
-        'id, enrollment_type, amount_paid, tithe_amount, course_offering_id, student_id, course_offerings(start_date, price, course_id, instructor_id, instructor_name, courses(code, name)), profiles(full_name, first_name, last_name)'
+        'id, enrollment_type, amount_paid, invoice_number, payment_date, tithe_amount, course_offering_id, student_id, course_offerings(start_date, price, course_id, instructor_id, instructor_name, courses(code, name)), profiles(full_name, first_name, last_name)'
       )
       .eq('payment_verified', false)
       .order('enrolled_at', { ascending: true }),
@@ -221,7 +221,13 @@ export default async function AdminPage() {
                           : `₱${group.offering?.price ?? 0}`}
                       </span>
                     </div>
-                    <PaymentVerifyForm enrollmentId={e.id} initialAmountPaid={e.amount_paid} initialVerified={false} />
+                    <PaymentVerifyForm
+                      enrollmentId={e.id}
+                      initialAmountPaid={e.amount_paid}
+                      initialVerified={false}
+                      initialInvoiceNumber={e.invoice_number}
+                      initialPaymentDate={e.payment_date}
+                    />
                   </li>
                 ))}
               </ul>

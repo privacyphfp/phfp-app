@@ -14,6 +14,52 @@ const TABS = [
 
 const PREVIEW_LIMIT = 20;
 
+// "August 29" for a single day, "August 29-30" spanning one month,
+// "August 29 - September 1" across months, with the year only added
+// when the range crosses one.
+function formatCourseDateRange(start, end) {
+  if (!start) return '';
+  const s = new Date(`${start}T00:00:00`);
+  if (!end || end === start) {
+    return s.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+  }
+  const e = new Date(`${end}T00:00:00`);
+  const sameYear = s.getFullYear() === e.getFullYear();
+  const sameMonth = sameYear && s.getMonth() === e.getMonth();
+  if (sameMonth) {
+    return `${s.toLocaleDateString('en-US', { month: 'long' })} ${s.getDate()}-${e.getDate()}`;
+  }
+  const opts = sameYear ? { month: 'long', day: 'numeric' } : { month: 'long', day: 'numeric', year: 'numeric' };
+  return `${s.toLocaleDateString('en-US', opts)} - ${e.toLocaleDateString('en-US', opts)}`;
+}
+
+function periodLabel(dateStr, groupBy) {
+  const d = new Date(`${dateStr}T00:00:00`);
+  return groupBy === 'yearly' ? String(d.getFullYear()) : d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+
+// Sortable key so periods land in chronological order, not alphabetical
+// ("August" would otherwise sort before "July").
+function periodSortKey(dateStr, groupBy) {
+  return groupBy === 'yearly' ? dateStr.slice(0, 4) : dateStr.slice(0, 7);
+}
+
+function instructorLabelFor(offering, instructorById) {
+  if (offering?.instructor_id) {
+    const p = instructorById[offering.instructor_id];
+    return p ? formatInstructorName(p.full_name || [p.first_name, p.last_name].filter(Boolean).join(' ')) : '';
+  }
+  return formatInstructorName(offering?.instructor_name) || '';
+}
+
+async function fetchInstructorById(supabase, offerings) {
+  const instructorIds = [...new Set((offerings ?? []).map((o) => o.instructor_id).filter(Boolean))];
+  const { data } = instructorIds.length
+    ? await supabase.from('profiles').select('id, full_name, first_name, last_name').in('id', instructorIds)
+    : { data: [] };
+  return Object.fromEntries((data ?? []).map((p) => [p.id, p]));
+}
+
 export default function ReportsPanel({ courses, students }) {
   const [tab, setTab] = useState('export');
 
@@ -307,8 +353,17 @@ function StudentExportTab() {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-brand-ink/60">Pick the columns to include, then preview before exporting.</p>
+      <p className="text-sm text-brand-ink/60">Pick the columns to include, then preview before exporting.</p>
+
+      <div className="mt-4">
+        <p className="text-xs font-semibold tracking-wide text-brand-ink/40 uppercase">Date of course (optional)</p>
+        <div className="mt-2">
+          <DateRangeInputs from={from} to={to} setFrom={(v) => { setFrom(v); setResult(null); }} setTo={(v) => { setTo(v); setResult(null); }} />
+        </div>
+      </div>
+
+      <div className="mt-5 flex items-center justify-between">
+        <p className="text-xs font-semibold tracking-wide text-brand-ink/40 uppercase">Columns</p>
         <div className="flex gap-2 text-xs">
           <button type="button" onClick={() => setAll(true)} className="text-brand-blue hover:underline">
             Select all
@@ -320,7 +375,7 @@ function StudentExportTab() {
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {COLUMN_GROUPS.map((group) => (
           <div key={group.label}>
             <p className="text-xs font-semibold tracking-wide text-brand-ink/40 uppercase">{group.label}</p>
@@ -334,13 +389,6 @@ function StudentExportTab() {
             </div>
           </div>
         ))}
-      </div>
-
-      <div className="mt-5">
-        <p className="text-xs font-semibold tracking-wide text-brand-ink/40 uppercase">Date of course (optional)</p>
-        <div className="mt-2">
-          <DateRangeInputs from={from} to={to} setFrom={(v) => { setFrom(v); setResult(null); }} setTo={(v) => { setTo(v); setResult(null); }} />
-        </div>
       </div>
 
       <div className="mt-6">
@@ -379,6 +427,7 @@ function ClassSummaryTab() {
   const today = new Date().toISOString().slice(0, 10);
   const [from, setFrom] = useState(`${new Date().getFullYear()}-01-01`);
   const [to, setTo] = useState(today);
+  const [groupBy, setGroupBy] = useState('monthly');
   const [rows, setRows] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -392,7 +441,7 @@ function ClassSummaryTab() {
       const supabase = createClient();
       const { data: offerings, error: offerError } = await supabase
         .from('course_offerings')
-        .select('id, start_date, course_id, courses ( code, name )')
+        .select('id, start_date, end_date, course_id, instructor_id, instructor_name, courses ( code, name )')
         .gte('start_date', from)
         .lte('start_date', to);
       if (offerError) {
@@ -401,30 +450,40 @@ function ClassSummaryTab() {
       }
 
       const offeringIds = (offerings ?? []).map((o) => o.id);
-      const { data: enrollments, error: enrollError } = offeringIds.length
-        ? await supabase.from('enrollments').select('course_offering_id, enrollment_type').in('course_offering_id', offeringIds)
-        : { data: [] };
+      const [{ data: enrollments, error: enrollError }, instructorById] = await Promise.all([
+        offeringIds.length
+          ? supabase.from('enrollments').select('course_offering_id, enrollment_type').in('course_offering_id', offeringIds)
+          : Promise.resolve({ data: [] }),
+        fetchInstructorById(supabase, offerings),
+      ]);
       if (enrollError) {
         setError(enrollError.message);
         return;
       }
 
-      const offeringToCourse = Object.fromEntries((offerings ?? []).map((o) => [o.id, o.course_id]));
-      const byCourse = new Map();
-      for (const o of offerings ?? []) {
-        const key = o.course_id;
-        if (!byCourse.has(key)) byCourse.set(key, { course: o.courses, classes: 0, newCount: 0, reviewCount: 0 });
-        byCourse.get(key).classes += 1;
-      }
+      const countsByOffering = new Map();
       for (const e of enrollments ?? []) {
-        const courseId = offeringToCourse[e.course_offering_id];
-        const entry = byCourse.get(courseId);
-        if (!entry) continue;
+        const entry = countsByOffering.get(e.course_offering_id) ?? { newCount: 0, reviewCount: 0 };
         if (e.enrollment_type === 'review') entry.reviewCount += 1;
         else entry.newCount += 1;
+        countsByOffering.set(e.course_offering_id, entry);
       }
 
-      setRows([...byCourse.values()].sort((a, b) => (a.course?.code || '').localeCompare(b.course?.code || '')));
+      const built = (offerings ?? []).map((o) => {
+        const counts = countsByOffering.get(o.id) ?? { newCount: 0, reviewCount: 0 };
+        return {
+          period: periodLabel(o.start_date, groupBy),
+          sortKey: `${periodSortKey(o.start_date, groupBy)}|${o.courses?.code || ''}|${o.start_date}`,
+          course: o.courses?.name,
+          code: o.courses?.code,
+          date: formatCourseDateRange(o.start_date, o.end_date),
+          instructor: instructorLabelFor(o, instructorById),
+          newCount: counts.newCount,
+          reviewCount: counts.reviewCount,
+        };
+      });
+
+      setRows(built.sort((a, b) => a.sortKey.localeCompare(b.sortKey)));
     } catch (err) {
       setError(err.message ?? 'Something went wrong. Please try again.');
     } finally {
@@ -434,23 +493,35 @@ function ClassSummaryTab() {
 
   function exportCsv() {
     if (!rows) return;
-    const header = ['Course', 'Course Code', 'Classes Conducted', 'New', 'Review', 'Total Enrollments'];
-    const csvRows = rows.map((r) => [r.course?.name, r.course?.code, r.classes, r.newCount, r.reviewCount, r.newCount + r.reviewCount]);
+    const header = [groupBy === 'yearly' ? 'Year' : 'Month', 'Course', 'Course Code', 'Date of Course', 'Instructor', 'New', 'Review', 'Total'];
+    const csvRows = rows.map((r) => [r.period, r.course, r.code, r.date, r.instructor, r.newCount, r.reviewCount, r.newCount + r.reviewCount]);
     downloadCsv(`phfp-class-summary-${from}-to-${to}`, header, csvRows);
   }
 
   const previewRows = useMemo(
-    () => (rows ?? []).map((r) => [r.course?.name || r.course?.code, r.classes, r.newCount, r.reviewCount, r.newCount + r.reviewCount]),
+    () => (rows ?? []).map((r) => [r.period, r.course, r.date, r.instructor, r.newCount, r.reviewCount, r.newCount + r.reviewCount]),
     [rows]
   );
 
   return (
     <div>
       <p className="text-sm text-brand-ink/60">
-        Classes conducted per course, and how many were new vs. review enrollments, within a date range.
+        Every class conducted within a date range — its date, instructor, and how many were new vs. review
+        enrollments — organized yearly or monthly.
       </p>
       <div className="mt-4 flex flex-wrap items-end gap-4">
         <DateRangeInputs from={from} to={to} setFrom={setFrom} setTo={setTo} />
+        <label className="text-sm text-brand-ink/70">
+          Organize by
+          <select
+            value={groupBy}
+            onChange={(e) => setGroupBy(e.target.value)}
+            className="mt-1 block rounded-lg border border-brand-blue/20 px-3 py-1.5 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20 dark:bg-zinc-900"
+          >
+            <option value="monthly">Monthly</option>
+            <option value="yearly">Yearly</option>
+          </select>
+        </label>
         <button
           type="button"
           onClick={run}
@@ -464,7 +535,10 @@ function ClassSummaryTab() {
 
       {rows && (
         <div className="mt-6">
-          <PreviewTable header={['Course', 'Classes Conducted', 'New', 'Review', 'Total']} rows={previewRows} />
+          <PreviewTable
+            header={[groupBy === 'yearly' ? 'Year' : 'Month', 'Course', 'Date', 'Instructor', 'New', 'Review', 'Total']}
+            rows={previewRows}
+          />
           <button
             type="button"
             onClick={exportCsv}
@@ -660,7 +734,7 @@ function StudentBalanceTab({ students }) {
       let q = supabase
         .from('enrollments')
         .select(
-          `enrollment_type, amount_paid, payment_verified, tithe_amount,
+          `enrollment_type, amount_paid, payment_verified, invoice_number, payment_date, tithe_amount,
            course_offerings!inner ( start_date, price, courses ( code, name ) )`
         )
         .eq('student_id', studentId);
@@ -690,8 +764,10 @@ function StudentBalanceTab({ students }) {
           code: o.courses?.code,
           date: o.start_date,
           type: isReview ? 'Review' : 'New',
+          invoiceNumber: e.invoice_number,
+          datePaid: e.payment_date,
           amountPaid: e.amount_paid,
-          price: isReview ? null : price,
+          total: isReview ? null : price,
           balance,
           tithe: isReview ? e.tithe_amount : null,
           verified: e.payment_verified,
@@ -709,11 +785,24 @@ function StudentBalanceTab({ students }) {
 
   function exportCsv() {
     if (!rows) return;
-    const header = ['Course Code', 'Course', 'Class Date', 'Type', 'Amount Paid', 'Price', 'Balance', 'Tithe Amount', 'Payment Verified'];
-    const csvRows = rows.map((r) => [r.code, r.course, r.date, r.type, r.amountPaid, r.price, r.balance, r.tithe, r.verified ? 'Yes' : 'No']);
-    csvRows.push([]);
-    csvRows.push(['', '', '', 'TOTALS', totals.totalPaid, '', totals.totalBalance, totals.totalTithe, '']);
-    downloadCsv(`phfp-student-balance-${selectedStudent ? studentLabel(selectedStudent).replace(/\s+/g, '-') : studentId}`, header, csvRows);
+    const header = [
+      'Course Code', 'Course', 'Class Date', 'Type', 'Invoice #', 'Date Paid',
+      'Amount Paid', 'Total', 'Balance', 'Tithe Amount', 'Payment Verified',
+    ];
+    const csvRows = [
+      ['Student:', studentLabel(selectedStudent)],
+      ['Center:', selectedStudent?.regions?.name || 'Not set'],
+      [],
+      header,
+      ...rows.map((r) => [
+        r.code, r.course, r.date, r.type, r.invoiceNumber, r.datePaid,
+        r.amountPaid, r.total, r.balance, r.tithe, r.verified ? 'Yes' : 'No',
+      ]),
+      [],
+      ['', '', '', '', '', 'TOTALS', totals.totalPaid, '', totals.totalBalance, totals.totalTithe, ''],
+    ];
+    // header row is already included above, so pass an empty header to downloadCsv
+    downloadCsv(`phfp-student-balance-${studentLabel(selectedStudent).replace(/\s+/g, '-')}`, [], csvRows);
   }
 
   const previewRows = useMemo(
@@ -722,8 +811,10 @@ function StudentBalanceTab({ students }) {
         r.code,
         r.date,
         r.type,
+        r.invoiceNumber,
+        r.datePaid,
         r.amountPaid != null ? `₱${r.amountPaid}` : null,
-        r.price != null ? `₱${r.price}` : null,
+        r.total != null ? `₱${r.total}` : null,
         r.balance != null ? `₱${r.balance}` : null,
         r.tithe != null ? `₱${r.tithe}` : null,
         r.verified ? 'Yes' : 'No',
@@ -769,6 +860,12 @@ function StudentBalanceTab({ students }) {
         )}
       </div>
 
+      {selectedStudent && (
+        <p className="mt-2 text-sm text-brand-ink/60">
+          Center: <span className="font-medium text-brand-ink">{selectedStudent.regions?.name || 'Not set'}</span>
+        </p>
+      )}
+
       <div className="mt-4 flex flex-wrap items-end gap-4">
         <DateRangeInputs from={from} to={to} setFrom={setFrom} setTo={setTo} />
         <button
@@ -799,7 +896,10 @@ function StudentBalanceTab({ students }) {
             </div>
           </div>
 
-          <PreviewTable header={['Course', 'Date', 'Type', 'Amount Paid', 'Price', 'Balance', 'Tithe', 'Verified']} rows={previewRows} />
+          <PreviewTable
+            header={['Course', 'Date', 'Type', 'Invoice #', 'Date Paid', 'Amount Paid', 'Total', 'Balance', 'Tithe', 'Verified']}
+            rows={previewRows}
+          />
           <button
             type="button"
             onClick={exportCsv}

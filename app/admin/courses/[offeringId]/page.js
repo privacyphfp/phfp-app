@@ -33,7 +33,7 @@ export default async function AdminOfferingRosterPage({ params }) {
   const { data: enrollments } = await supabase
     .from('enrollments')
     .select(
-      'id, status, enrollment_type, referred_by, tithe_amount, amount_paid, payment_verified, receipt_url, student_id, profiles(first_name, last_name, full_name, email)'
+      'id, status, enrollment_type, referred_by, tithe_amount, amount_paid, payment_verified, invoice_number, payment_date, receipt_url, student_id, profiles(first_name, last_name, full_name, email)'
     )
     .eq('course_offering_id', offeringId)
     .order('enrolled_at');
@@ -107,6 +107,8 @@ export default async function AdminOfferingRosterPage({ params }) {
                 enrollmentId={e.id}
                 initialAmountPaid={e.amount_paid}
                 initialVerified={e.payment_verified}
+                initialInvoiceNumber={e.invoice_number}
+                initialPaymentDate={e.payment_date}
               />
               <AttendanceStatusForm enrollmentId={e.id} initialStatus={e.status} />
 
