@@ -51,6 +51,11 @@ export default async function SiteHeader() {
           <Link href="/calendar" className={navPillClass}>
             Calendar
           </Link>
+          {role === 'admin' && (
+            <Link href="/admin/reports" className={navPillClass}>
+              Reports
+            </Link>
+          )}
           {user ? (
             <SignOutButton className={navPillClass} />
           ) : (
@@ -76,6 +81,11 @@ export default async function SiteHeader() {
           <Link href="/calendar" className={mobilePillClass}>
             Calendar
           </Link>
+          {role === 'admin' && (
+            <Link href="/admin/reports" className={mobilePillClass}>
+              Reports
+            </Link>
+          )}
           {user ? (
             <SignOutButton className={mobilePillClass} />
           ) : (
