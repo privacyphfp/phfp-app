@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { downloadCsv } from '@/lib/csv';
 import { formatInstructorName } from '@/lib/formatInstructor';
@@ -9,9 +9,12 @@ const TABS = [
   { key: 'export', label: 'Student & Enrollment Export' },
   { key: 'summary', label: 'Class Summary' },
   { key: 'payments', label: 'Payment & Balance' },
+  { key: 'studentBalance', label: 'Student Balance' },
 ];
 
-export default function ReportsPanel({ courses }) {
+const PREVIEW_LIMIT = 20;
+
+export default function ReportsPanel({ courses, students }) {
   const [tab, setTab] = useState('export');
 
   return (
@@ -35,9 +38,84 @@ export default function ReportsPanel({ courses }) {
 
       <div className="mt-6">
         {tab === 'export' && <StudentExportTab />}
-        {tab === 'summary' && <ClassSummaryTab courses={courses} />}
+        {tab === 'summary' && <ClassSummaryTab />}
         {tab === 'payments' && <PaymentBalanceTab courses={courses} />}
+        {tab === 'studentBalance' && <StudentBalanceTab students={students} />}
       </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Shared bits
+// ============================================================
+
+function DateRangeInputs({ from, to, setFrom, setTo, label = true }) {
+  return (
+    <div className="flex flex-wrap items-end gap-3">
+      <label className="text-sm text-brand-ink/70">
+        {label && 'From'}
+        <input
+          type="date"
+          value={from}
+          onChange={(e) => setFrom(e.target.value)}
+          className="mt-1 block rounded-lg border border-brand-blue/20 px-3 py-1.5 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20 dark:bg-zinc-900"
+        />
+      </label>
+      <label className="text-sm text-brand-ink/70">
+        {label && 'To'}
+        <input
+          type="date"
+          value={to}
+          onChange={(e) => setTo(e.target.value)}
+          className="mt-1 block rounded-lg border border-brand-blue/20 px-3 py-1.5 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20 dark:bg-zinc-900"
+        />
+      </label>
+      {(from || to) && <span className="pb-2 text-xs text-brand-ink/40">Leave blank for no date limit</span>}
+    </div>
+  );
+}
+
+function PreviewTable({ header, rows }) {
+  const shown = rows.slice(0, PREVIEW_LIMIT);
+  return (
+    <div>
+      <div className="overflow-x-auto rounded-xl border border-brand-blue/15">
+        <table className="w-full text-left text-sm">
+          <thead className="bg-brand-blue/5 text-xs font-semibold tracking-wide whitespace-nowrap text-brand-ink/50 uppercase">
+            <tr>
+              {header.map((h) => (
+                <th key={h} className="px-3 py-2">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {shown.map((row, i) => (
+              <tr key={i} className="border-t border-brand-blue/10">
+                {row.map((cell, j) => (
+                  <td key={j} className="px-3 py-2 whitespace-nowrap text-brand-ink">
+                    {cell ?? '—'}
+                  </td>
+                ))}
+              </tr>
+            ))}
+            {!rows.length && (
+              <tr>
+                <td colSpan={header.length} className="px-3 py-4 text-center text-brand-ink/50">
+                  No rows to show.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      {rows.length > PREVIEW_LIMIT && (
+        <p className="mt-2 text-xs text-brand-ink/50">
+          Showing first {PREVIEW_LIMIT} of {rows.length} rows — export for the full list.
+        </p>
+      )}
     </div>
   );
 }
@@ -100,33 +178,47 @@ const ALL_COLUMNS = COLUMN_GROUPS.flatMap((g) => g.columns);
 
 function StudentExportTab() {
   const [checked, setChecked] = useState(() => Object.fromEntries(ALL_COLUMNS.map(([key, , def]) => [key, def])));
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [count, setCount] = useState(null);
+  const [result, setResult] = useState(null); // { header, rows }
 
   function toggle(key) {
     setChecked((c) => ({ ...c, [key]: !c[key] }));
+    setResult(null);
   }
   function setAll(value) {
     setChecked(Object.fromEntries(ALL_COLUMNS.map(([key]) => [key, value])));
+    setResult(null);
   }
 
-  async function runExport() {
+  async function runPreview() {
     setLoading(true);
     setError(null);
-    setCount(null);
+    setResult(null);
 
     try {
+      const activeColumns = ALL_COLUMNS.filter(([key]) => checked[key]);
+      if (!activeColumns.length) {
+        setError('Select at least one column first.');
+        return;
+      }
+
       const supabase = createClient();
 
+      let query = supabase
+        .from('enrollments')
+        .select(
+          `id, status, enrollment_type, referred_by, tithe_amount, amount_paid, payment_verified, student_id,
+           profiles ( full_name, first_name, last_name, nickname, birthdate, address, city, state_region, country, phone, email, fb_link, religion, profession, company ),
+           course_offerings!inner ( start_date, price, course_id, instructor_id, instructor_name, courses ( code, name ), regions ( name ) )`
+        );
+      if (from) query = query.gte('course_offerings.start_date', from);
+      if (to) query = query.lte('course_offerings.start_date', to);
+
       const [{ data: enrollments, error: enrollError }, { data: certificates, error: certError }] = await Promise.all([
-        supabase
-          .from('enrollments')
-          .select(
-            `id, status, enrollment_type, referred_by, tithe_amount, amount_paid, payment_verified, student_id,
-             profiles ( full_name, first_name, last_name, nickname, birthdate, address, city, state_region, country, phone, email, fb_link, religion, profession, company ),
-             course_offerings ( start_date, price, course_id, instructor_id, instructor_name, courses ( code, name ), regions ( name ) )`
-          ),
+        query,
         supabase.from('certificates').select('student_id, course_id, certificate_number, issued_date, verified'),
       ]);
       if (enrollError) {
@@ -197,15 +289,9 @@ function StudentExportTab() {
         };
       });
 
-      const activeColumns = ALL_COLUMNS.filter(([key]) => checked[key]);
-      if (!activeColumns.length) {
-        setError('Select at least one column first.');
-        return;
-      }
       const header = activeColumns.map(([, label]) => label);
       const csvRows = rows.map((row) => activeColumns.map(([key]) => row[key]));
-      downloadCsv(`phfp-student-export-${new Date().toISOString().slice(0, 10)}`, header, csvRows);
-      setCount(rows.length);
+      setResult({ header, rows: csvRows });
     } catch (err) {
       setError(err.message ?? 'Something went wrong. Please try again.');
     } finally {
@@ -213,10 +299,16 @@ function StudentExportTab() {
     }
   }
 
+  function exportCsv() {
+    if (!result) return;
+    const suffix = from || to ? `-${from || 'start'}-to-${to || 'now'}` : '';
+    downloadCsv(`phfp-student-export${suffix}`, result.header, result.rows);
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between">
-        <p className="text-sm text-brand-ink/60">Pick the columns to include, then export every enrollment as CSV.</p>
+        <p className="text-sm text-brand-ink/60">Pick the columns to include, then preview before exporting.</p>
         <div className="flex gap-2 text-xs">
           <button type="button" onClick={() => setAll(true)} className="text-brand-blue hover:underline">
             Select all
@@ -244,18 +336,37 @@ function StudentExportTab() {
         ))}
       </div>
 
+      <div className="mt-5">
+        <p className="text-xs font-semibold tracking-wide text-brand-ink/40 uppercase">Date of course (optional)</p>
+        <div className="mt-2">
+          <DateRangeInputs from={from} to={to} setFrom={(v) => { setFrom(v); setResult(null); }} setTo={(v) => { setTo(v); setResult(null); }} />
+        </div>
+      </div>
+
       <div className="mt-6">
         <button
           type="button"
-          onClick={runExport}
+          onClick={runPreview}
           disabled={loading}
           className="rounded-full bg-brand-blue px-5 py-2 text-sm font-medium text-white shadow-sm shadow-brand-blue/20 transition-colors hover:bg-brand-blue-dark disabled:opacity-50"
         >
-          {loading ? 'Exporting…' : 'Export CSV'}
+          {loading ? 'Loading…' : 'Preview'}
         </button>
-        {count != null && <span className="ml-3 text-sm text-brand-ink/50">Exported {count} rows.</span>}
         {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
       </div>
+
+      {result && (
+        <div className="mt-6">
+          <PreviewTable header={result.header} rows={result.rows} />
+          <button
+            type="button"
+            onClick={exportCsv}
+            className="mt-3 rounded-full bg-brand-blue px-5 py-2 text-sm font-medium text-white shadow-sm shadow-brand-blue/20 transition-colors hover:bg-brand-blue-dark"
+          >
+            Export CSV ({result.rows.length} rows)
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -263,31 +374,6 @@ function StudentExportTab() {
 // ============================================================
 // Tab 2: classes conducted + new/review totals per course, for a date range
 // ============================================================
-
-function DateRangeInputs({ from, to, setFrom, setTo }) {
-  return (
-    <div className="flex flex-wrap items-end gap-3">
-      <label className="text-sm text-brand-ink/70">
-        From
-        <input
-          type="date"
-          value={from}
-          onChange={(e) => setFrom(e.target.value)}
-          className="mt-1 block rounded-lg border border-brand-blue/20 px-3 py-1.5 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20 dark:bg-zinc-900"
-        />
-      </label>
-      <label className="text-sm text-brand-ink/70">
-        To
-        <input
-          type="date"
-          value={to}
-          onChange={(e) => setTo(e.target.value)}
-          className="mt-1 block rounded-lg border border-brand-blue/20 px-3 py-1.5 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20 dark:bg-zinc-900"
-        />
-      </label>
-    </div>
-  );
-}
 
 function ClassSummaryTab() {
   const today = new Date().toISOString().slice(0, 10);
@@ -338,9 +424,7 @@ function ClassSummaryTab() {
         else entry.newCount += 1;
       }
 
-      setRows(
-        [...byCourse.values()].sort((a, b) => (a.course?.code || '').localeCompare(b.course?.code || ''))
-      );
+      setRows([...byCourse.values()].sort((a, b) => (a.course?.code || '').localeCompare(b.course?.code || '')));
     } catch (err) {
       setError(err.message ?? 'Something went wrong. Please try again.');
     } finally {
@@ -351,16 +435,14 @@ function ClassSummaryTab() {
   function exportCsv() {
     if (!rows) return;
     const header = ['Course', 'Course Code', 'Classes Conducted', 'New', 'Review', 'Total Enrollments'];
-    const csvRows = rows.map((r) => [
-      r.course?.name,
-      r.course?.code,
-      r.classes,
-      r.newCount,
-      r.reviewCount,
-      r.newCount + r.reviewCount,
-    ]);
+    const csvRows = rows.map((r) => [r.course?.name, r.course?.code, r.classes, r.newCount, r.reviewCount, r.newCount + r.reviewCount]);
     downloadCsv(`phfp-class-summary-${from}-to-${to}`, header, csvRows);
   }
+
+  const previewRows = useMemo(
+    () => (rows ?? []).map((r) => [r.course?.name || r.course?.code, r.classes, r.newCount, r.reviewCount, r.newCount + r.reviewCount]),
+    [rows]
+  );
 
   return (
     <div>
@@ -375,46 +457,20 @@ function ClassSummaryTab() {
           disabled={loading}
           className="rounded-full bg-brand-blue px-5 py-2 text-sm font-medium text-white shadow-sm shadow-brand-blue/20 transition-colors hover:bg-brand-blue-dark disabled:opacity-50"
         >
-          {loading ? 'Running…' : 'Run Report'}
+          {loading ? 'Running…' : 'Preview'}
         </button>
       </div>
       {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
 
       {rows && (
         <div className="mt-6">
-          <div className="overflow-x-auto rounded-xl border border-brand-blue/15">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-brand-blue/5 text-xs font-semibold tracking-wide text-brand-ink/50 uppercase">
-                <tr>
-                  <th className="px-3 py-2">Course</th>
-                  <th className="px-3 py-2">Classes Conducted</th>
-                  <th className="px-3 py-2">New</th>
-                  <th className="px-3 py-2">Review</th>
-                  <th className="px-3 py-2">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={r.course?.code} className="border-t border-brand-blue/10">
-                    <td className="px-3 py-2 font-medium text-brand-ink">{r.course?.name || r.course?.code}</td>
-                    <td className="px-3 py-2">{r.classes}</td>
-                    <td className="px-3 py-2">{r.newCount}</td>
-                    <td className="px-3 py-2">{r.reviewCount}</td>
-                    <td className="px-3 py-2">{r.newCount + r.reviewCount}</td>
-                  </tr>
-                ))}
-                {!rows.length && (
-                  <tr>
-                    <td colSpan={5} className="px-3 py-4 text-center text-brand-ink/50">
-                      No classes in this range.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-          <button type="button" onClick={exportCsv} className="mt-3 text-sm text-brand-blue hover:underline">
-            Export CSV →
+          <PreviewTable header={['Course', 'Classes Conducted', 'New', 'Review', 'Total']} rows={previewRows} />
+          <button
+            type="button"
+            onClick={exportCsv}
+            className="mt-3 rounded-full bg-brand-blue px-5 py-2 text-sm font-medium text-white shadow-sm shadow-brand-blue/20 transition-colors hover:bg-brand-blue-dark"
+          >
+            Export CSV ({rows.length} rows)
           </button>
         </div>
       )}
@@ -428,6 +484,8 @@ function ClassSummaryTab() {
 
 function PaymentBalanceTab({ courses }) {
   const [courseId, setCourseId] = useState(courses[0]?.id ?? '');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
   const [rows, setRows] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -440,10 +498,10 @@ function PaymentBalanceTab({ courses }) {
 
     try {
       const supabase = createClient();
-      const { data: offerings, error: offerError } = await supabase
-        .from('course_offerings')
-        .select('id, start_date, price')
-        .eq('course_id', courseId);
+      let offerQuery = supabase.from('course_offerings').select('id, start_date, price').eq('course_id', courseId);
+      if (from) offerQuery = offerQuery.gte('start_date', from);
+      if (to) offerQuery = offerQuery.lte('start_date', to);
+      const { data: offerings, error: offerError } = await offerQuery;
       if (offerError) {
         setError(offerError.message);
         return;
@@ -493,19 +551,24 @@ function PaymentBalanceTab({ courses }) {
     if (!rows) return;
     const course = courses.find((c) => c.id === courseId);
     const header = ['Student', 'Course Code', 'Class Date', 'Type', 'Amount Paid', 'Price', 'Balance', 'Tithe Amount', 'Payment Verified'];
-    const csvRows = rows.map((r) => [
-      r.name,
-      course?.code,
-      r.date,
-      r.type,
-      r.amountPaid,
-      r.price,
-      r.balance,
-      r.tithe,
-      r.verified ? 'Yes' : 'No',
-    ]);
+    const csvRows = rows.map((r) => [r.name, course?.code, r.date, r.type, r.amountPaid, r.price, r.balance, r.tithe, r.verified ? 'Yes' : 'No']);
     downloadCsv(`phfp-payments-${course?.code || courseId}`, header, csvRows);
   }
+
+  const previewRows = useMemo(
+    () =>
+      (rows ?? []).map((r) => [
+        r.name,
+        r.date,
+        r.type,
+        r.amountPaid != null ? `₱${r.amountPaid}` : null,
+        r.price != null ? `₱${r.price}` : null,
+        r.balance != null ? `₱${r.balance}` : null,
+        r.tithe != null ? `₱${r.tithe}` : null,
+        r.verified ? 'Yes' : 'No',
+      ]),
+    [rows]
+  );
 
   return (
     <div>
@@ -528,64 +591,221 @@ function PaymentBalanceTab({ courses }) {
             ))}
           </select>
         </label>
+        <DateRangeInputs from={from} to={to} setFrom={setFrom} setTo={setTo} />
         <button
           type="button"
           onClick={run}
           disabled={loading || !courseId}
           className="rounded-full bg-brand-blue px-5 py-2 text-sm font-medium text-white shadow-sm shadow-brand-blue/20 transition-colors hover:bg-brand-blue-dark disabled:opacity-50"
         >
-          {loading ? 'Running…' : 'Run Report'}
+          {loading ? 'Running…' : 'Preview'}
         </button>
       </div>
       {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
 
       {rows && (
         <div className="mt-6">
-          <div className="overflow-x-auto rounded-xl border border-brand-blue/15">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-brand-blue/5 text-xs font-semibold tracking-wide text-brand-ink/50 uppercase">
-                <tr>
-                  <th className="px-3 py-2">Student</th>
-                  <th className="px-3 py-2">Date</th>
-                  <th className="px-3 py-2">Type</th>
-                  <th className="px-3 py-2">Amount Paid</th>
-                  <th className="px-3 py-2">Price</th>
-                  <th className="px-3 py-2">Balance</th>
-                  <th className="px-3 py-2">Tithe</th>
-                  <th className="px-3 py-2">Verified</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r, i) => (
-                  <tr key={i} className="border-t border-brand-blue/10">
-                    <td className="px-3 py-2 font-medium text-brand-ink">{r.name}</td>
-                    <td className="px-3 py-2">{r.date}</td>
-                    <td className="px-3 py-2">{r.type}</td>
-                    <td className="px-3 py-2">{r.amountPaid != null ? `₱${r.amountPaid}` : '—'}</td>
-                    <td className="px-3 py-2">{r.price != null ? `₱${r.price}` : '—'}</td>
-                    <td className="px-3 py-2">
-                      {r.balance != null ? (
-                        <span className={r.balance > 0 ? 'text-brand-flame' : 'text-brand-blue'}>₱{r.balance}</span>
-                      ) : (
-                        '—'
-                      )}
-                    </td>
-                    <td className="px-3 py-2">{r.tithe != null ? `₱${r.tithe}` : '—'}</td>
-                    <td className="px-3 py-2">{r.verified ? 'Yes' : 'No'}</td>
-                  </tr>
-                ))}
-                {!rows.length && (
-                  <tr>
-                    <td colSpan={8} className="px-3 py-4 text-center text-brand-ink/50">
-                      No enrollments for this course yet.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+          <PreviewTable
+            header={['Student', 'Date', 'Type', 'Amount Paid', 'Price', 'Balance', 'Tithe', 'Verified']}
+            rows={previewRows}
+          />
+          <button
+            type="button"
+            onClick={exportCsv}
+            className="mt-3 rounded-full bg-brand-blue px-5 py-2 text-sm font-medium text-white shadow-sm shadow-brand-blue/20 transition-colors hover:bg-brand-blue-dark"
+          >
+            Export CSV ({rows.length} rows)
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// Tab 4: one student's accumulated payments/tithes across every course
+// ============================================================
+
+function studentLabel(s) {
+  return s.full_name || [s.first_name, s.last_name].filter(Boolean).join(' ') || s.email || 'Unnamed';
+}
+
+function StudentBalanceTab({ students }) {
+  const [query, setQuery] = useState('');
+  const [studentId, setStudentId] = useState(null);
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [rows, setRows] = useState(null);
+  const [totals, setTotals] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const matches = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    return students.filter((s) => studentLabel(s).toLowerCase().includes(q) || (s.email || '').toLowerCase().includes(q)).slice(0, 8);
+  }, [students, query]);
+
+  const selectedStudent = students.find((s) => s.id === studentId);
+
+  async function run() {
+    if (!studentId) return;
+    setLoading(true);
+    setError(null);
+    setRows(null);
+    setTotals(null);
+
+    try {
+      const supabase = createClient();
+      let q = supabase
+        .from('enrollments')
+        .select(
+          `enrollment_type, amount_paid, payment_verified, tithe_amount,
+           course_offerings!inner ( start_date, price, courses ( code, name ) )`
+        )
+        .eq('student_id', studentId);
+      if (from) q = q.gte('course_offerings.start_date', from);
+      if (to) q = q.lte('course_offerings.start_date', to);
+      const { data: enrollments, error: enrollError } = await q;
+      if (enrollError) {
+        setError(enrollError.message);
+        return;
+      }
+
+      let totalPaid = 0;
+      let totalBalance = 0;
+      let totalTithe = 0;
+
+      const built = (enrollments ?? []).map((e) => {
+        const o = e.course_offerings ?? {};
+        const price = o.price ?? 0;
+        const paid = e.amount_paid ?? 0;
+        const isReview = e.enrollment_type === 'review';
+        const balance = isReview ? null : Math.max(price - paid, 0);
+        totalPaid += paid;
+        if (balance != null) totalBalance += balance;
+        if (isReview) totalTithe += e.tithe_amount ?? 0;
+        return {
+          course: o.courses?.name,
+          code: o.courses?.code,
+          date: o.start_date,
+          type: isReview ? 'Review' : 'New',
+          amountPaid: e.amount_paid,
+          price: isReview ? null : price,
+          balance,
+          tithe: isReview ? e.tithe_amount : null,
+          verified: e.payment_verified,
+        };
+      });
+
+      setRows(built);
+      setTotals({ totalPaid, totalBalance, totalTithe });
+    } catch (err) {
+      setError(err.message ?? 'Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function exportCsv() {
+    if (!rows) return;
+    const header = ['Course Code', 'Course', 'Class Date', 'Type', 'Amount Paid', 'Price', 'Balance', 'Tithe Amount', 'Payment Verified'];
+    const csvRows = rows.map((r) => [r.code, r.course, r.date, r.type, r.amountPaid, r.price, r.balance, r.tithe, r.verified ? 'Yes' : 'No']);
+    csvRows.push([]);
+    csvRows.push(['', '', '', 'TOTALS', totals.totalPaid, '', totals.totalBalance, totals.totalTithe, '']);
+    downloadCsv(`phfp-student-balance-${selectedStudent ? studentLabel(selectedStudent).replace(/\s+/g, '-') : studentId}`, header, csvRows);
+  }
+
+  const previewRows = useMemo(
+    () =>
+      (rows ?? []).map((r) => [
+        r.code,
+        r.date,
+        r.type,
+        r.amountPaid != null ? `₱${r.amountPaid}` : null,
+        r.price != null ? `₱${r.price}` : null,
+        r.balance != null ? `₱${r.balance}` : null,
+        r.tithe != null ? `₱${r.tithe}` : null,
+        r.verified ? 'Yes' : 'No',
+      ]),
+    [rows]
+  );
+
+  return (
+    <div>
+      <p className="text-sm text-brand-ink/60">
+        Search a student to see every course they&apos;ve paid for or tithed toward, with running totals.
+      </p>
+
+      <div className="relative mt-4 max-w-sm">
+        <input
+          type="text"
+          value={selectedStudent ? studentLabel(selectedStudent) : query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setStudentId(null);
+            setRows(null);
+          }}
+          placeholder="Search by name or email…"
+          className="w-full rounded-lg border border-brand-blue/20 px-3 py-1.5 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20 dark:bg-zinc-900"
+        />
+        {!studentId && matches.length > 0 && (
+          <div className="absolute z-10 mt-1 w-full rounded-lg border border-brand-blue/20 bg-white shadow-lg dark:bg-zinc-900">
+            {matches.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => {
+                  setStudentId(s.id);
+                  setQuery('');
+                }}
+                className="block w-full px-3 py-2 text-left text-sm hover:bg-brand-blue/5"
+              >
+                <div className="text-brand-ink">{studentLabel(s)}</div>
+                <div className="text-xs text-brand-ink/50">{s.email}</div>
+              </button>
+            ))}
           </div>
-          <button type="button" onClick={exportCsv} className="mt-3 text-sm text-brand-blue hover:underline">
-            Export CSV →
+        )}
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-end gap-4">
+        <DateRangeInputs from={from} to={to} setFrom={setFrom} setTo={setTo} />
+        <button
+          type="button"
+          onClick={run}
+          disabled={loading || !studentId}
+          className="rounded-full bg-brand-blue px-5 py-2 text-sm font-medium text-white shadow-sm shadow-brand-blue/20 transition-colors hover:bg-brand-blue-dark disabled:opacity-50"
+        >
+          {loading ? 'Running…' : 'Preview'}
+        </button>
+      </div>
+      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+
+      {rows && totals && (
+        <div className="mt-6">
+          <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="rounded-xl border border-brand-blue/15 bg-brand-blue/5 p-3">
+              <div className="text-xs font-medium tracking-wide text-brand-ink/50 uppercase">Total Paid</div>
+              <div className="text-xl font-semibold text-brand-blue-dark">₱{totals.totalPaid}</div>
+            </div>
+            <div className="rounded-xl border border-brand-flame/20 bg-brand-amber/10 p-3">
+              <div className="text-xs font-medium tracking-wide text-brand-ink/50 uppercase">Total Balance Owed</div>
+              <div className="text-xl font-semibold text-brand-flame">₱{totals.totalBalance}</div>
+            </div>
+            <div className="rounded-xl border border-brand-blue/15 bg-brand-blue/5 p-3">
+              <div className="text-xs font-medium tracking-wide text-brand-ink/50 uppercase">Total Tithe</div>
+              <div className="text-xl font-semibold text-brand-blue-dark">₱{totals.totalTithe}</div>
+            </div>
+          </div>
+
+          <PreviewTable header={['Course', 'Date', 'Type', 'Amount Paid', 'Price', 'Balance', 'Tithe', 'Verified']} rows={previewRows} />
+          <button
+            type="button"
+            onClick={exportCsv}
+            className="mt-3 rounded-full bg-brand-blue px-5 py-2 text-sm font-medium text-white shadow-sm shadow-brand-blue/20 transition-colors hover:bg-brand-blue-dark"
+          >
+            Export CSV ({rows.length} rows)
           </button>
         </div>
       )}

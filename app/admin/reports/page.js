@@ -7,7 +7,10 @@ import ReportsPanel from '@/components/ReportsPanel';
 export default async function AdminReportsPage() {
   const { supabase } = await requireProfile(['admin']);
 
-  const { data: courses } = await supabase.from('courses').select('id, code, name').order('code');
+  const [{ data: courses }, { data: students }] = await Promise.all([
+    supabase.from('courses').select('id, code, name').order('code'),
+    supabase.from('profiles').select('id, full_name, first_name, last_name, email').order('full_name'),
+  ]);
 
   return (
     <div className="mx-auto w-full max-w-5xl p-8">
@@ -21,7 +24,7 @@ export default async function AdminReportsPage() {
       </p>
 
       <div className="mt-6 rounded-2xl border border-brand-gold/40 bg-white/70 p-6 shadow-sm dark:bg-white/5">
-        <ReportsPanel courses={courses ?? []} />
+        <ReportsPanel courses={courses ?? []} students={students ?? []} />
       </div>
     </div>
   );
