@@ -10,6 +10,7 @@ const TABS = [
   { key: 'summary', label: 'Class Summary' },
   { key: 'payments', label: 'Payment & Balance' },
   { key: 'studentBalance', label: 'Student Balance' },
+  { key: 'perInstructor', label: 'Students per Instructor' },
 ];
 
 const PREVIEW_LIMIT = 20;
@@ -87,6 +88,7 @@ export default function ReportsPanel({ courses, students }) {
         {tab === 'summary' && <ClassSummaryTab />}
         {tab === 'payments' && <PaymentBalanceTab courses={courses} />}
         {tab === 'studentBalance' && <StudentBalanceTab students={students} />}
+        {tab === 'perInstructor' && <StudentsPerInstructorTab />}
       </div>
     </div>
   );
@@ -898,6 +900,164 @@ function StudentBalanceTab({ students }) {
 
           <PreviewTable
             header={['Course', 'Date', 'Type', 'Invoice #', 'Date Paid', 'Amount Paid', 'Total', 'Balance', 'Tithe', 'Verified']}
+            rows={previewRows}
+          />
+          <button
+            type="button"
+            onClick={exportCsv}
+            className="mt-3 rounded-full bg-brand-blue px-5 py-2 text-sm font-medium text-white shadow-sm shadow-brand-blue/20 transition-colors hover:bg-brand-blue-dark"
+          >
+            Export CSV ({rows.length} rows)
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// Tab 5: flat list of students, grouped/filterable by instructor
+// ============================================================
+
+function StudentsPerInstructorTab() {
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [instructorFilter, setInstructorFilter] = useState('all');
+  const [rows, setRows] = useState(null);
+  const [instructorOptions, setInstructorOptions] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function run() {
+    setLoading(true);
+    setError(null);
+    setRows(null);
+
+    try {
+      const supabase = createClient();
+
+      let q = supabase
+        .from('enrollments')
+        .select(
+          `student_id, enrollment_type, referred_by,
+           profiles ( full_name, first_name, last_name ),
+           course_offerings!inner ( start_date, course_id, instructor_id, instructor_name, courses ( code ), regions ( name ) )`
+        );
+      if (from) q = q.gte('course_offerings.start_date', from);
+      if (to) q = q.lte('course_offerings.start_date', to);
+
+      const [{ data: enrollments, error: enrollError }, { data: certificates, error: certError }] = await Promise.all([
+        q,
+        supabase.from('certificates').select('student_id, course_id, certificate_number, issued_date, verified'),
+      ]);
+      if (enrollError) {
+        setError(enrollError.message);
+        return;
+      }
+      if (certError) {
+        setError(certError.message);
+        return;
+      }
+
+      const certByKey = new Map();
+      for (const c of certificates ?? []) {
+        const key = `${c.student_id}|${c.course_id}`;
+        const existing = certByKey.get(key);
+        if (!existing || (c.verified && !existing.verified)) certByKey.set(key, c);
+      }
+
+      const instructorById = await fetchInstructorById(
+        supabase,
+        (enrollments ?? []).map((e) => e.course_offerings)
+      );
+
+      const built = (enrollments ?? []).map((e) => {
+        const o = e.course_offerings ?? {};
+        const p = e.profiles ?? {};
+        const cert = certByKey.get(`${e.student_id}|${o.course_id}`);
+        return {
+          certNumber: cert?.certificate_number,
+          courseCode: o.courses?.code,
+          studentName: p.full_name || [p.first_name, p.last_name].filter(Boolean).join(' '),
+          type: e.enrollment_type === 'review' ? 'Review' : 'New',
+          referredBy: e.referred_by,
+          center: o.regions?.name,
+          dateGraduated: cert?.issued_date,
+          year: o.start_date ? o.start_date.slice(0, 4) : '',
+          instructor: instructorLabelFor(o, instructorById) || 'Unassigned',
+        };
+      });
+
+      setInstructorOptions([...new Set(built.map((r) => r.instructor))].sort());
+
+      const filtered = instructorFilter === 'all' ? built : built.filter((r) => r.instructor === instructorFilter);
+      filtered.sort(
+        (a, b) => a.instructor.localeCompare(b.instructor) || a.courseCode?.localeCompare(b.courseCode || '') || a.studentName.localeCompare(b.studentName)
+      );
+      setRows(filtered);
+    } catch (err) {
+      setError(err.message ?? 'Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function exportCsv() {
+    if (!rows) return;
+    const header = ['No.', 'Cert#', 'Course', 'Student Full Name', 'New/Review', 'Referred by', 'Center', 'Date Graduated', 'Year', 'Instructor Name'];
+    const csvRows = rows.map((r, i) => [
+      i + 1, r.certNumber, r.courseCode, r.studentName, r.type, r.referredBy, r.center, r.dateGraduated, r.year, r.instructor,
+    ]);
+    downloadCsv(`phfp-students-per-instructor${instructorFilter !== 'all' ? `-${instructorFilter.replace(/\s+/g, '-')}` : ''}`, header, csvRows);
+  }
+
+  const previewRows = useMemo(
+    () =>
+      (rows ?? []).map((r, i) => [
+        i + 1, r.certNumber, r.courseCode, r.studentName, r.type, r.referredBy, r.center, r.dateGraduated, r.year, r.instructor,
+      ]),
+    [rows]
+  );
+
+  return (
+    <div>
+      <p className="text-sm text-brand-ink/60">
+        Every student, grouped by instructor — certificate number, course, referral, center, and the year they
+        graduated.
+      </p>
+      <div className="mt-4 flex flex-wrap items-end gap-4">
+        <DateRangeInputs from={from} to={to} setFrom={setFrom} setTo={setTo} />
+        <label className="text-sm text-brand-ink/70">
+          Instructor
+          <select
+            value={instructorFilter}
+            onChange={(e) => setInstructorFilter(e.target.value)}
+            className="mt-1 block max-w-[14rem] rounded-lg border border-brand-blue/20 px-3 py-1.5 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20 dark:bg-zinc-900"
+          >
+            <option value="all">All instructors</option>
+            {instructorOptions.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="button"
+          onClick={run}
+          disabled={loading}
+          className="rounded-full bg-brand-blue px-5 py-2 text-sm font-medium text-white shadow-sm shadow-brand-blue/20 transition-colors hover:bg-brand-blue-dark disabled:opacity-50"
+        >
+          {loading ? 'Running…' : 'Preview'}
+        </button>
+      </div>
+      <p className="mt-1 text-xs text-brand-ink/40">Run once to populate the instructor list, then filter and re-run if needed.</p>
+      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+
+      {rows && (
+        <div className="mt-6">
+          <PreviewTable
+            header={['No.', 'Cert#', 'Course', 'Student Full Name', 'New/Review', 'Referred by', 'Center', 'Date Graduated', 'Year', 'Instructor Name']}
             rows={previewRows}
           />
           <button
