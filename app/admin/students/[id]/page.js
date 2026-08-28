@@ -4,6 +4,8 @@ import { signCertificateUrls } from '@/lib/certificateUrl';
 import RoleAssignmentForm from '@/components/RoleAssignmentForm';
 import TitheAmountForm from '@/components/TitheAmountForm';
 import CertificateVerifyButton from '@/components/CertificateVerifyButton';
+import ConfirmLegacyRecordForm from '@/components/ConfirmLegacyRecordForm';
+import CertificateNumberForm from '@/components/CertificateNumberForm';
 
 function Field({ label, value }) {
   return (
@@ -18,22 +20,24 @@ export default async function AdminStudentDetailPage({ params }) {
   const { id } = await params;
   const { supabase } = await requireProfile(['admin']);
 
-  const [{ data: student }, { data: enrollments }, { data: regions }, { data: certificates }] = await Promise.all([
-    supabase.from('profiles').select('*').eq('id', id).single(),
-    supabase
-      .from('enrollments')
-      .select(
-        'id, status, enrolled_at, referred_by, enrollment_type, tithe_amount, course_offerings(start_date, courses(name))'
-      )
-      .eq('student_id', id)
-      .order('enrolled_at', { ascending: false }),
-    supabase.from('regions').select('id, name').order('name'),
-    supabase
-      .from('certificates')
-      .select('id, course_id, file_url, issued_date, verified, courses(code, name)')
-      .eq('student_id', id)
-      .order('created_at', { ascending: false }),
-  ]);
+  const [{ data: student }, { data: enrollments }, { data: regions }, { data: certificates }, { data: courses }] =
+    await Promise.all([
+      supabase.from('profiles').select('*').eq('id', id).single(),
+      supabase
+        .from('enrollments')
+        .select(
+          'id, status, enrolled_at, referred_by, enrollment_type, tithe_amount, course_offerings(start_date, courses(name))'
+        )
+        .eq('student_id', id)
+        .order('enrolled_at', { ascending: false }),
+      supabase.from('regions').select('id, name').order('name'),
+      supabase
+        .from('certificates')
+        .select('id, course_id, file_url, issued_date, verified, certificate_number, courses(code, name)')
+        .eq('student_id', id)
+        .order('created_at', { ascending: false }),
+      supabase.from('courses').select('id, code, name'),
+    ]);
 
   const certificatesWithUrls = await signCertificateUrls(supabase, certificates ?? []);
 
@@ -53,6 +57,16 @@ export default async function AdminStudentDetailPage({ params }) {
     const { data: r } = await supabase.from('regions').select('name').eq('id', student.region_id).single();
     regionName = r?.name ?? null;
   }
+
+  const courseByCode = Object.fromEntries((courses ?? []).map((c) => [c.code, c]));
+
+  // Suggested matches from imported historical "who took what" records —
+  // matched by name only, so staff confirms each one rather than it
+  // auto-verifying (see components/ConfirmLegacyRecordForm.js).
+  const studentName = (student.full_name || [student.first_name, student.last_name].filter(Boolean).join(' ') || '').trim();
+  const { data: legacyMatches } = studentName
+    ? await supabase.from('legacy_course_records').select('*').eq('resolved', false).ilike('student_name', studentName)
+    : { data: [] };
 
   return (
     <div className="mx-auto w-full max-w-3xl p-8">
@@ -181,6 +195,34 @@ export default async function AdminStudentDetailPage({ params }) {
         </ul>
       </section>
 
+      {(legacyMatches ?? []).length > 0 && (
+        <section className="mt-6 rounded-2xl border border-brand-flame/40 bg-brand-amber/10 p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-brand-blue-dark">Possible Historical Records</h2>
+          <p className="mt-1 text-sm text-brand-ink/60">
+            Imported records whose name matches this student. Confirm only if you&apos;re sure it&apos;s the same
+            person — a name match alone isn&apos;t proof.
+          </p>
+          <ul className="mt-4 space-y-2">
+            {legacyMatches.map((r) => {
+              const course = courseByCode[r.course_code];
+              return (
+                <li key={r.id} className="rounded-xl border border-brand-flame/20 bg-white/60 p-3 text-sm">
+                  <div className="flex items-baseline justify-between">
+                    <span className="font-medium text-brand-ink">{course?.name || r.course_code}</span>
+                    <span className="text-brand-ink/50">{r.completed_date}</span>
+                  </div>
+                  <div className="mt-1 text-brand-ink/60">
+                    Recorded as &quot;{r.student_name}&quot;
+                    {r.region && ` · ${r.region}`}
+                  </div>
+                  <ConfirmLegacyRecordForm record={r} studentId={student.id} courseId={course?.id} />
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
       <section className="mt-6 rounded-2xl border border-brand-gold/40 bg-white/70 p-6 shadow-sm dark:bg-white/5">
         <h2 className="text-lg font-semibold text-brand-blue-dark">Certificates</h2>
         <p className="mt-1 text-sm text-brand-ink/60">
@@ -207,6 +249,7 @@ export default async function AdminStudentDetailPage({ params }) {
                 )}
                 <CertificateVerifyButton certificateId={c.id} verified={c.verified} />
               </div>
+              <CertificateNumberForm certificateId={c.id} initialValue={c.certificate_number} />
             </li>
           ))}
           {!certificatesWithUrls.length && <p className="text-brand-ink/50">No certificates submitted yet.</p>}
