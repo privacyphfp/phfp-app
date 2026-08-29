@@ -8,8 +8,11 @@ import EnrollButton from '@/components/EnrollButton';
 import CourseBingoBoard from '@/components/CourseBingoBoard';
 
 export default async function StudentPage() {
-  const { supabase, user, profile } = await requireProfile(['student', 'volunteer', 'admin']);
-  const isPreview = profile?.role !== 'student' && profile?.role !== 'volunteer';
+  // Every role is also a student here — admin/marketing/accounting are
+  // staff permissions layered on top of a real person who takes courses
+  // too, not a separate account type. This is their genuine dashboard,
+  // not a preview.
+  const { supabase, user, profile } = await requireProfile(['student', 'volunteer', 'admin', 'marketing', 'accounting']);
   const profileComplete = isProfileComplete(profile);
   const today = new Date().toISOString().slice(0, 10);
 
@@ -54,14 +57,6 @@ export default async function StudentPage() {
 
   return (
     <div className="mx-auto w-full max-w-3xl p-8">
-      {isPreview && (
-        <div className="mb-6 flex items-center justify-between rounded-full border border-brand-flame/30 bg-brand-amber/15 px-4 py-2 text-sm text-brand-flame">
-          <span>Previewing the Student portal as {profile?.role}</span>
-          <Link href="/admin" className="font-medium underline underline-offset-2">
-            ← Back to Admin
-          </Link>
-        </div>
-      )}
       {!profileComplete && (
         <div className="mb-6 flex items-center justify-between rounded-full border border-brand-flame/30 bg-brand-amber/15 px-4 py-2 text-sm text-brand-flame">
           <span>Complete your profile to be able to enroll in courses.</span>

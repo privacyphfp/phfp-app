@@ -102,7 +102,10 @@ export default async function CourseDetailPage({ params }) {
         .select('status, enrollment_type, course_offering_id, course_offerings(course_id, start_date)')
         .eq('student_id', user.id),
       supabase.from('profiles').select('*').eq('id', user.id).single(),
-      supabase.from('certificates').select('id, course_id, file_url, issued_date, verified').eq('student_id', user.id),
+      supabase
+        .from('certificates')
+        .select('id, course_id, file_url, issued_date, verified, declined, created_at')
+        .eq('student_id', user.id),
     ]);
 
     completedCourseIds = new Set([
@@ -120,12 +123,29 @@ export default async function CourseDetailPage({ params }) {
     newEnrollments = myCourseEnrollments.filter((e) => e.enrollment_type !== 'review');
     reviewEnrollments = myCourseEnrollments.filter((e) => e.enrollment_type === 'review');
 
-    const rawCertificate = (myCertificates ?? []).find((c) => c.course_id === id) ?? null;
+    // A resubmission after a decline is just a new row — there's no unique
+    // constraint on (student_id, course_id). Prefer a verified one, then
+    // the most recent still-pending one, then fall back to the most recent
+    // declined one so the student can see it was declined and try again.
+    const courseCerts = (myCertificates ?? [])
+      .filter((c) => c.course_id === id)
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    const rawCertificate = courseCerts.find((c) => c.verified) ?? courseCerts.find((c) => !c.declined) ?? courseCerts[0] ?? null;
     if (rawCertificate) {
       const [signed] = await signCertificateUrls(supabase, [rawCertificate]);
       myCertificate = signed;
     }
   }
+
+  const { data: instructorProfilesList } = await supabase
+    .from('profiles')
+    .select('id, full_name, first_name, last_name')
+    .eq('staff_position', 'instructor')
+    .order('full_name');
+  const instructorOptions = (instructorProfilesList ?? []).map((p) => ({
+    id: p.id,
+    label: formatInstructorName(p.full_name || [p.first_name, p.last_name].filter(Boolean).join(' ')) || 'Unnamed',
+  }));
 
   const missingPrereqs = requiredCourseIds
     .filter((cid) => !completedCourseIds.has(cid))
@@ -172,7 +192,7 @@ export default async function CourseDetailPage({ params }) {
 
             <div className="mt-3 border-t border-brand-blue/10 pt-3">
               <p className="text-sm font-medium text-brand-ink/80">Certificate</p>
-              {myCertificate ? (
+              {myCertificate && !myCertificate.declined ? (
                 <div className="mt-1 text-sm">
                   {myCertificate.issued_date && (
                     <p className="text-brand-ink/60">Date Graduated: {formatDateLong(myCertificate.issued_date)}</p>
@@ -195,11 +215,16 @@ export default async function CourseDetailPage({ params }) {
                 </div>
               ) : (
                 <div className="mt-2">
-                  <p className="text-sm text-brand-ink/60">
+                  {myCertificate?.declined && (
+                    <p className="text-sm text-brand-flame">
+                      Your previous submission was declined. Please double-check the details and submit again.
+                    </p>
+                  )}
+                  <p className="mt-1 text-sm text-brand-ink/60">
                     Already took this course before enrolling here? Upload proof and PHFP staff will verify it.
                   </p>
                   <div className="mt-2">
-                    <CertificateUploadForm studentId={user.id} courseId={id} />
+                    <CertificateUploadForm studentId={user.id} courseId={id} instructors={instructorOptions} />
                   </div>
                 </div>
               )}

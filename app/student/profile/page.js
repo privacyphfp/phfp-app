@@ -3,7 +3,7 @@ import { signAvatarUrl } from '@/lib/avatarUrl';
 import ProfileForm from './ProfileForm';
 
 export default async function ProfilePage() {
-  const { supabase, profile } = await requireProfile(['student', 'volunteer', 'admin']);
+  const { supabase, profile } = await requireProfile(['student', 'volunteer', 'admin', 'marketing', 'accounting']);
   const avatarSignedUrl = await signAvatarUrl(supabase, profile?.avatar_url);
 
   return (

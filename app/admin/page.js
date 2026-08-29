@@ -24,8 +24,9 @@ export default async function AdminPage() {
     supabase.from('enrollments').select('*', { count: 'exact', head: true }).eq('status', 'registered'),
     supabase
       .from('certificates')
-      .select('id, file_url, issued_date, student_id, courses(code, name), profiles(full_name, first_name, last_name)')
+      .select('id, file_url, issued_date, declined, student_id, courses(code, name), profiles(full_name, first_name, last_name)')
       .eq('verified', false)
+      .eq('declined', false)
       .order('created_at', { ascending: true }),
     supabase
       .from('enrollments')
@@ -118,9 +119,9 @@ export default async function AdminPage() {
         </Link>
         <Link
           href="/student"
-          className="inline-flex items-center gap-1 rounded-full border border-brand-flame/30 bg-brand-amber/10 px-5 py-2 text-sm font-medium text-brand-flame transition-colors hover:bg-brand-amber/20"
+          className="inline-flex items-center gap-1 rounded-full border border-brand-blue/30 px-5 py-2 text-sm font-medium text-brand-blue transition-colors hover:bg-brand-blue/10"
         >
-          Preview as Student →
+          My Dashboard →
         </Link>
       </div>
 
@@ -173,7 +174,7 @@ export default async function AdminPage() {
                           View file
                         </a>
                       )}
-                      <CertificateVerifyButton certificateId={c.id} verified={false} />
+                      <CertificateVerifyButton certificateId={c.id} verified={false} declined={false} />
                     </div>
                   </li>
                 ))}

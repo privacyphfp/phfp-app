@@ -33,7 +33,7 @@ export default async function AdminStudentDetailPage({ params }) {
       supabase.from('regions').select('id, name').order('name'),
       supabase
         .from('certificates')
-        .select('id, course_id, file_url, issued_date, verified, certificate_number, courses(code, name)')
+        .select('id, course_id, file_url, issued_date, verified, declined, certificate_number, courses(code, name)')
         .eq('student_id', id)
         .order('created_at', { ascending: false }),
       supabase.from('courses').select('id, code, name'),
@@ -247,7 +247,7 @@ export default async function AdminStudentDetailPage({ params }) {
                     View file
                   </a>
                 )}
-                <CertificateVerifyButton certificateId={c.id} verified={c.verified} />
+                <CertificateVerifyButton certificateId={c.id} verified={c.verified} declined={c.declined} />
               </div>
               <CertificateNumberForm certificateId={c.id} initialValue={c.certificate_number} />
             </li>

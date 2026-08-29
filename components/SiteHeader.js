@@ -22,11 +22,16 @@ export default async function SiteHeader() {
   const mobilePillClass =
     'flex items-center justify-center rounded-full border border-brand-blue/30 px-4 py-2.5 text-brand-ink/70 transition-colors hover:border-brand-blue hover:text-brand-blue';
 
-  const roleLink = user
-    ? role === 'admin'
-      ? { href: '/admin', label: 'Admin Dashboard' }
-      : { href: '/student', label: 'My Dashboard' }
-    : null;
+  // Everyone is also a student here — admin (and any other staff role) is
+  // a permission layered on top of a real person who takes courses too,
+  // so admins get both links instead of My Dashboard being hidden behind
+  // their staff role.
+  const roleLinks = user
+    ? [
+        ...(role === 'admin' ? [{ href: '/admin', label: 'Admin Dashboard' }] : []),
+        { href: '/student', label: 'My Dashboard' },
+      ]
+    : [];
 
   return (
     <header className="relative z-50 border-b border-brand-gold/40 bg-brand-cream/80 backdrop-blur supports-[backdrop-filter]:bg-brand-cream/60">
@@ -40,11 +45,11 @@ export default async function SiteHeader() {
 
         {/* Desktop nav */}
         <nav className="hidden items-center gap-3 text-sm font-medium sm:flex">
-          {roleLink && (
-            <Link href={roleLink.href} className={navPillClass}>
-              {roleLink.label}
+          {roleLinks.map((link) => (
+            <Link key={link.href} href={link.href} className={navPillClass}>
+              {link.label}
             </Link>
-          )}
+          ))}
           <Link href="/courses" className={navPillClass}>
             Courses
           </Link>
@@ -70,11 +75,11 @@ export default async function SiteHeader() {
 
         {/* Mobile nav */}
         <MobileMenu>
-          {roleLink && (
-            <Link href={roleLink.href} className={mobilePillClass}>
-              {roleLink.label}
+          {roleLinks.map((link) => (
+            <Link key={link.href} href={link.href} className={mobilePillClass}>
+              {link.label}
             </Link>
-          )}
+          ))}
           <Link href="/courses" className={mobilePillClass}>
             Courses
           </Link>

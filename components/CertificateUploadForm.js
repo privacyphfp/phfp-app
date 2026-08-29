@@ -4,10 +4,14 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
-export default function CertificateUploadForm({ studentId, courseId }) {
+const OTHER_VALUE = '__other__';
+
+export default function CertificateUploadForm({ studentId, courseId, instructors }) {
   const router = useRouter();
   const [issuedDate, setIssuedDate] = useState('');
   const [file, setFile] = useState(null);
+  const [instructorId, setInstructorId] = useState('');
+  const [instructorName, setInstructorName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -38,6 +42,8 @@ export default function CertificateUploadForm({ studentId, courseId }) {
         course_id: courseId,
         file_url: path,
         issued_date: issuedDate || null,
+        instructor_id: instructorId && instructorId !== OTHER_VALUE ? instructorId : null,
+        instructor_name: instructorId === OTHER_VALUE ? instructorName.trim() || null : null,
       });
       if (insertError) {
         setError(insertError.message);
@@ -46,6 +52,8 @@ export default function CertificateUploadForm({ studentId, courseId }) {
 
       setFile(null);
       setIssuedDate('');
+      setInstructorId('');
+      setInstructorName('');
       router.refresh();
     } catch (err) {
       setError(err.message ?? 'Something went wrong. Please try again.');
@@ -70,6 +78,32 @@ export default function CertificateUploadForm({ studentId, courseId }) {
           className={inputClass}
         />
       </label>
+
+      <label className="text-sm text-brand-ink/80">
+        Instructor
+        <select value={instructorId} onChange={(e) => setInstructorId(e.target.value)} className={inputClass}>
+          <option value="">Select instructor</option>
+          {instructors.map((i) => (
+            <option key={i.id} value={i.id}>
+              {i.label}
+            </option>
+          ))}
+          <option value={OTHER_VALUE}>Other</option>
+        </select>
+      </label>
+
+      {instructorId === OTHER_VALUE && (
+        <label className="text-sm text-brand-ink/80">
+          Instructor name
+          <input
+            type="text"
+            value={instructorName}
+            onChange={(e) => setInstructorName(e.target.value)}
+            placeholder="Type their name"
+            className={inputClass}
+          />
+        </label>
+      )}
 
       <div className="text-sm text-brand-ink/80">
         Certificate File

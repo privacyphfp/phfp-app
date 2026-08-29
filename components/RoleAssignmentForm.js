@@ -83,7 +83,7 @@ export default function RoleAssignmentForm({ studentId, initialRole, initialStaf
       </label>
 
       <label className="text-sm text-brand-ink/80">
-        Staff Position
+        Position
         <select value={staffPosition} onChange={(e) => setStaffPosition(e.target.value)} className={selectClass}>
           {STAFF_POSITIONS.map((p) => (
             <option key={p.value} value={p.value}>
