@@ -123,7 +123,7 @@ export default async function AdminPage() {
           href="/student"
           className="inline-flex items-center gap-1 rounded-full border border-brand-blue/30 px-5 py-2 text-sm font-medium text-brand-blue transition-colors hover:bg-brand-blue/10"
         >
-          My Dashboard →
+          My Profile →
         </Link>
       </div>
 

@@ -6,6 +6,7 @@ import TitheAmountForm from '@/components/TitheAmountForm';
 import CertificateVerifyButton from '@/components/CertificateVerifyButton';
 import ConfirmLegacyRecordForm from '@/components/ConfirmLegacyRecordForm';
 import CertificateNumberForm from '@/components/CertificateNumberForm';
+import CourseBingoBoard from '@/components/CourseBingoBoard';
 
 function Field({ label, value }) {
   return (
@@ -26,7 +27,7 @@ export default async function AdminStudentDetailPage({ params }) {
       supabase
         .from('enrollments')
         .select(
-          'id, status, enrolled_at, referred_by, enrollment_type, tithe_amount, course_offerings(start_date, courses(name))'
+          'id, status, enrolled_at, referred_by, enrollment_type, tithe_amount, course_offerings(start_date, course_id, courses(name))'
         )
         .eq('student_id', id)
         .order('enrolled_at', { ascending: false }),
@@ -36,10 +37,15 @@ export default async function AdminStudentDetailPage({ params }) {
         .select('id, course_id, file_url, issued_date, verified, declined, certificate_number, courses(code, name)')
         .eq('student_id', id)
         .order('created_at', { ascending: false }),
-      supabase.from('courses').select('id, code, name'),
+      supabase.from('courses').select('id, code, name, series').order('code'),
     ]);
 
   const certificatesWithUrls = await signCertificateUrls(supabase, certificates ?? []);
+
+  const completedCourseIds = new Set([
+    ...(enrollments ?? []).filter((e) => e.status === 'completed').map((e) => e.course_offerings?.course_id),
+    ...(certificates ?? []).filter((c) => c.verified).map((c) => c.course_id),
+  ]);
 
   if (!student) {
     return (
@@ -166,6 +172,13 @@ export default async function AdminStudentDetailPage({ params }) {
               <p className="mt-1 text-sm text-brand-flame">Not signed</p>
             )}
           </div>
+        </div>
+      </section>
+
+      <section className="mt-6 rounded-2xl border border-brand-gold/40 bg-white/70 p-6 shadow-sm dark:bg-white/5">
+        <h2 className="text-lg font-semibold text-brand-blue-dark">Course Progress</h2>
+        <div className="mt-4">
+          <CourseBingoBoard courses={courses ?? []} completedCourseIds={completedCourseIds} />
         </div>
       </section>
 
