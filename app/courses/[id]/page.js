@@ -5,6 +5,7 @@ import { getAuthedUser } from '@/lib/auth';
 import { SERIES_LABELS, SERIES_HEX } from '@/lib/courseSeries';
 import { isProfileComplete } from '@/lib/profileCompleteness';
 import { formatInstructorName } from '@/lib/formatInstructor';
+import { KNOWN_INSTRUCTOR_NAMES } from '@/lib/knownInstructors';
 import { signCertificateUrls } from '@/lib/certificateUrl';
 import EnrollButton from '@/components/EnrollButton';
 import CertificateUploadForm from '@/components/CertificateUploadForm';
@@ -142,10 +143,14 @@ export default async function CourseDetailPage({ params }) {
     .select('id, full_name, first_name, last_name')
     .eq('staff_position', 'instructor')
     .order('full_name');
-  const instructorOptions = (instructorProfilesList ?? []).map((p) => ({
-    id: p.id,
-    label: formatInstructorName(p.full_name || [p.first_name, p.last_name].filter(Boolean).join(' ')) || 'Unnamed',
-  }));
+  const instructorOptions = [
+    ...(instructorProfilesList ?? []).map((p) => ({
+      value: p.id,
+      label: formatInstructorName(p.full_name || [p.first_name, p.last_name].filter(Boolean).join(' ')) || 'Unnamed',
+      kind: 'profile',
+    })),
+    ...KNOWN_INSTRUCTOR_NAMES.map((name) => ({ value: name, label: name, kind: 'name' })),
+  ];
 
   const missingPrereqs = requiredCourseIds
     .filter((cid) => !completedCourseIds.has(cid))

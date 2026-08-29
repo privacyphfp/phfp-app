@@ -10,7 +10,7 @@ export default function CertificateUploadForm({ studentId, courseId, instructors
   const router = useRouter();
   const [issuedDate, setIssuedDate] = useState('');
   const [file, setFile] = useState(null);
-  const [instructorId, setInstructorId] = useState('');
+  const [instructorValue, setInstructorValue] = useState('');
   const [instructorName, setInstructorName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -37,13 +37,16 @@ export default function CertificateUploadForm({ studentId, courseId, instructors
         return;
       }
 
+      const selected = instructors.find((i) => i.value === instructorValue);
+
       const { error: insertError } = await supabase.from('certificates').insert({
         student_id: studentId,
         course_id: courseId,
         file_url: path,
         issued_date: issuedDate || null,
-        instructor_id: instructorId && instructorId !== OTHER_VALUE ? instructorId : null,
-        instructor_name: instructorId === OTHER_VALUE ? instructorName.trim() || null : null,
+        instructor_id: selected?.kind === 'profile' ? selected.value : null,
+        instructor_name:
+          instructorValue === OTHER_VALUE ? instructorName.trim() || null : selected?.kind === 'name' ? selected.value : null,
       });
       if (insertError) {
         setError(insertError.message);
@@ -52,7 +55,7 @@ export default function CertificateUploadForm({ studentId, courseId, instructors
 
       setFile(null);
       setIssuedDate('');
-      setInstructorId('');
+      setInstructorValue('');
       setInstructorName('');
       router.refresh();
     } catch (err) {
@@ -81,10 +84,10 @@ export default function CertificateUploadForm({ studentId, courseId, instructors
 
       <label className="text-sm text-brand-ink/80">
         Instructor
-        <select value={instructorId} onChange={(e) => setInstructorId(e.target.value)} className={inputClass}>
+        <select value={instructorValue} onChange={(e) => setInstructorValue(e.target.value)} className={inputClass}>
           <option value="">Select instructor</option>
           {instructors.map((i) => (
-            <option key={i.id} value={i.id}>
+            <option key={i.value} value={i.value}>
               {i.label}
             </option>
           ))}
@@ -92,7 +95,7 @@ export default function CertificateUploadForm({ studentId, courseId, instructors
         </select>
       </label>
 
-      {instructorId === OTHER_VALUE && (
+      {instructorValue === OTHER_VALUE && (
         <label className="text-sm text-brand-ink/80">
           Instructor name
           <input
