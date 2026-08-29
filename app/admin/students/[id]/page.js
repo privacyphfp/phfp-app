@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { requireProfile } from '@/lib/auth';
-import { ADMIN_ROLES } from '@/lib/roles';
+import { ADMIN_ROLES, ULTIMATE_ROLES } from '@/lib/roles';
 import { signCertificateUrls } from '@/lib/certificateUrl';
 import RoleAssignmentForm from '@/components/RoleAssignmentForm';
 import TitheAmountForm from '@/components/TitheAmountForm';
@@ -20,7 +20,7 @@ function Field({ label, value }) {
 
 export default async function AdminStudentDetailPage({ params }) {
   const { id } = await params;
-  const { supabase } = await requireProfile(ADMIN_ROLES);
+  const { supabase, profile: viewer } = await requireProfile(ADMIN_ROLES);
 
   const [{ data: student }, { data: enrollments }, { data: regions }, { data: certificates }, { data: courses }] =
     await Promise.all([
@@ -59,6 +59,13 @@ export default async function AdminStudentDetailPage({ params }) {
     );
   }
 
+  // Marketing/Accounting have full operational access (students,
+  // instructors, courses, certificates, payments) but can't see or change
+  // role/position/region for another staff or admin member — that's
+  // reserved for the ultimate tier (Admin, Manager). Viewing a plain
+  // student or volunteer's role is fine for anyone in the admin tier.
+  const canSeeRolePermissions = ULTIMATE_ROLES.includes(viewer?.role) || !ADMIN_ROLES.includes(student.role);
+
   let regionName = null;
   if (student.region_id) {
     const { data: r } = await supabase.from('regions').select('name').eq('id', student.region_id).single();
@@ -86,22 +93,24 @@ export default async function AdminStudentDetailPage({ params }) {
       </h1>
       <p className="text-sm text-brand-ink/60">{student.email}</p>
 
-      <section className="mt-6 rounded-2xl border border-brand-gold/40 bg-white/70 p-6 shadow-sm dark:bg-white/5">
-        <h2 className="text-lg font-semibold text-brand-blue-dark">Role &amp; Permissions</h2>
-        <p className="mt-1 text-sm text-brand-ink/60">
-          A staff position (Instructor / Center Manager) is layered on top of their role — it doesn&apos;t replace
-          it, so they keep their normal student access.
-        </p>
-        <div className="mt-4">
-          <RoleAssignmentForm
-            studentId={student.id}
-            initialRole={student.role}
-            initialStaffPosition={student.staff_position}
-            initialManagedRegionId={student.managed_region_id}
-            regions={regions ?? []}
-          />
-        </div>
-      </section>
+      {canSeeRolePermissions && (
+        <section className="mt-6 rounded-2xl border border-brand-gold/40 bg-white/70 p-6 shadow-sm dark:bg-white/5">
+          <h2 className="text-lg font-semibold text-brand-blue-dark">Role &amp; Permissions</h2>
+          <p className="mt-1 text-sm text-brand-ink/60">
+            A staff position (Instructor / Center Manager) is layered on top of their role — it doesn&apos;t replace
+            it, so they keep their normal student access.
+          </p>
+          <div className="mt-4">
+            <RoleAssignmentForm
+              studentId={student.id}
+              initialRole={student.role}
+              initialStaffPosition={student.staff_position}
+              initialManagedRegionId={student.managed_region_id}
+              regions={regions ?? []}
+            />
+          </div>
+        </section>
+      )}
 
       <section className="mt-6 rounded-2xl border border-brand-gold/40 bg-white/70 p-6 shadow-sm dark:bg-white/5">
         <h2 className="text-lg font-semibold text-brand-blue-dark">Personal Information</h2>
