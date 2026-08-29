@@ -1,21 +1,15 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import logo from '@/public/logo.png';
-import { createClient } from '@/lib/supabase/server';
+import { getAuthedUser } from '@/lib/auth';
 import SignOutButton from './SignOutButton';
 import MobileMenu from './MobileMenu';
 
 export default async function SiteHeader() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  let role = null;
-  if (user) {
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-    role = profile?.role ?? null;
-  }
+  // Reuses whatever the current page already fetched for auth (same
+  // request, memoized) instead of re-querying Supabase from scratch.
+  const { user, profile } = await getAuthedUser();
+  const role = profile?.role ?? null;
 
   const navPillClass =
     'flex items-center justify-center rounded-full border border-brand-blue/30 px-4 py-1.5 text-brand-ink/70 transition-colors hover:border-brand-blue hover:text-brand-blue';

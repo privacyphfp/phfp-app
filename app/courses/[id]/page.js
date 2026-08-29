@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/server';
+import { getAuthedUser } from '@/lib/auth';
 import { SERIES_LABELS, SERIES_HEX } from '@/lib/courseSeries';
 import { isProfileComplete } from '@/lib/profileCompleteness';
 import { formatInstructorName } from '@/lib/formatInstructor';
@@ -84,9 +85,9 @@ export default async function CourseDetailPage({ params }) {
     return formatInstructorName(o.instructor_name) || null;
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Shares the same cached auth+profile fetch SiteHeader already made for
+  // this request instead of re-querying Supabase from scratch.
+  const { user, profile: myProfile } = await getAuthedUser();
 
   let completedCourseIds = new Set();
   let enrolledOfferingIds = new Set();
@@ -96,12 +97,11 @@ export default async function CourseDetailPage({ params }) {
   let myCertificate = null;
 
   if (user) {
-    const [{ data: myEnrollments }, { data: myProfile }, { data: myCertificates }] = await Promise.all([
+    const [{ data: myEnrollments }, { data: myCertificates }] = await Promise.all([
       supabase
         .from('enrollments')
         .select('status, enrollment_type, course_offering_id, course_offerings(course_id, start_date)')
         .eq('student_id', user.id),
-      supabase.from('profiles').select('*').eq('id', user.id).single(),
       supabase
         .from('certificates')
         .select('id, course_id, file_url, issued_date, verified, declined, created_at')

@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { getAuthedUser } from '@/lib/auth';
 import { SERIES_HEX } from '@/lib/courseSeries';
 import { formatInstructorName } from '@/lib/formatInstructor';
 import CalendarFilterView from '@/components/CalendarFilterView';
@@ -41,9 +42,9 @@ export default async function CalendarPage() {
     return formatInstructorName(o.instructor_name) || null;
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Shares the same cached auth fetch SiteHeader already made for this
+  // request instead of re-querying Supabase from scratch.
+  const { user } = await getAuthedUser();
 
   let enrolledOfferingIds = new Set();
   if (user) {
