@@ -24,7 +24,9 @@ export default async function AdminPage() {
     supabase.from('enrollments').select('*', { count: 'exact', head: true }).eq('status', 'registered'),
     supabase
       .from('certificates')
-      .select('id, file_url, issued_date, declined, student_id, courses(code, name), profiles(full_name, first_name, last_name)')
+      .select(
+        'id, file_url, issued_date, declined, student_id, courses(code, name), profiles!certificates_student_id_fkey(full_name, first_name, last_name)'
+      )
       .eq('verified', false)
       .eq('declined', false)
       .order('created_at', { ascending: true }),
