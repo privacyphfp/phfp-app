@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import logo from '@/public/logo.png';
 import { getAuthedUser } from '@/lib/auth';
+import { ADMIN_ROLES } from '@/lib/roles';
 import SignOutButton from './SignOutButton';
 import MobileMenu from './MobileMenu';
 
@@ -20,9 +21,10 @@ export default async function SiteHeader() {
   // a permission layered on top of a real person who takes courses too,
   // so admins get both links instead of My Dashboard being hidden behind
   // their staff role.
+  const isAdminTier = ADMIN_ROLES.includes(role);
   const roleLinks = user
     ? [
-        ...(role === 'admin' ? [{ href: '/admin', label: 'Admin Dashboard' }] : []),
+        ...(isAdminTier ? [{ href: '/admin', label: 'Admin Dashboard' }] : []),
         { href: '/student', label: 'My Profile' },
       ]
     : [];
@@ -50,7 +52,7 @@ export default async function SiteHeader() {
           <Link href="/calendar" className={navPillClass}>
             Calendar
           </Link>
-          {role === 'admin' && (
+          {isAdminTier && (
             <Link href="/admin/reports" className={navPillClass}>
               Reports
             </Link>
@@ -80,7 +82,7 @@ export default async function SiteHeader() {
           <Link href="/calendar" className={mobilePillClass}>
             Calendar
           </Link>
-          {role === 'admin' && (
+          {isAdminTier && (
             <Link href="/admin/reports" className={mobilePillClass}>
               Reports
             </Link>

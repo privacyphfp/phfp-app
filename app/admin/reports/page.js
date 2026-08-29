@@ -1,11 +1,12 @@
 import Link from 'next/link';
 import { requireProfile } from '@/lib/auth';
+import { ADMIN_ROLES } from '@/lib/roles';
 import ReportsPanel from '@/components/ReportsPanel';
 
 // Admin-only — not staff in general. requireProfile checks the role
 // server-side before anything here renders.
 export default async function AdminReportsPage() {
-  const { supabase } = await requireProfile(['admin']);
+  const { supabase } = await requireProfile(ADMIN_ROLES);
 
   const [{ data: courses }, { data: students }] = await Promise.all([
     supabase.from('courses').select('id, code, name').order('code'),

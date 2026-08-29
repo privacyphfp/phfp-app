@@ -1,4 +1,5 @@
 import { requireProfile } from '@/lib/auth';
+import { ADMIN_ROLES } from '@/lib/roles';
 import { isProfileComplete } from '@/lib/profileCompleteness';
 import StudentSearchList from '@/components/StudentSearchList';
 
@@ -16,7 +17,7 @@ const STAFF_POSITION_LABELS = {
 };
 
 export default async function AdminStudentsPage() {
-  const { supabase } = await requireProfile(['admin']);
+  const { supabase } = await requireProfile(ADMIN_ROLES);
 
   const [{ data: students }, { data: regions }] = await Promise.all([
     supabase.from('profiles').select('*').order('full_name'),

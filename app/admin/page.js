@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { requireProfile } from '@/lib/auth';
+import { ADMIN_ROLES } from '@/lib/roles';
 import { signCertificateUrls } from '@/lib/certificateUrl';
 import { formatInstructorName } from '@/lib/formatInstructor';
 import CertificateVerifyButton from '@/components/CertificateVerifyButton';
@@ -10,7 +11,7 @@ function studentName(p) {
 }
 
 export default async function AdminPage() {
-  const { supabase } = await requireProfile(['admin']);
+  const { supabase } = await requireProfile(ADMIN_ROLES);
 
   const [
     { count: studentCount },

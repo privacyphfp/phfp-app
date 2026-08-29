@@ -4,15 +4,18 @@ import { computeEligibility } from '@/lib/eligibility';
 import { isProfileComplete } from '@/lib/profileCompleteness';
 import { signReceiptUrls } from '@/lib/receiptUrl';
 import { signAvatarUrl } from '@/lib/avatarUrl';
+import { ADMIN_ROLES, ROLE_LABELS } from '@/lib/roles';
 import EnrollButton from '@/components/EnrollButton';
 import CourseBingoBoard from '@/components/CourseBingoBoard';
 
+const STAFF_POSITION_LABELS = { instructor: 'Instructor', center_manager: 'Center Manager' };
+
 export default async function StudentPage() {
-  // Every role is also a student here — admin/marketing/accounting are
-  // staff permissions layered on top of a real person who takes courses
-  // too, not a separate account type. This is their genuine dashboard,
-  // not a preview.
-  const { supabase, user, profile } = await requireProfile(['student', 'volunteer', 'admin', 'marketing', 'accounting']);
+  // Every role is also a student here — admin/marketing/accounting/manager
+  // are staff permissions layered on top of a real person who takes
+  // courses too, not a separate account type. This is their genuine
+  // dashboard, not a preview.
+  const { supabase, user, profile } = await requireProfile(['student', 'volunteer', ...ADMIN_ROLES]);
   const profileComplete = isProfileComplete(profile);
   const today = new Date().toISOString().slice(0, 10);
 
@@ -91,6 +94,24 @@ export default async function StudentPage() {
         <span className="font-medium text-brand-ink">My Profile</span>
         <span className="text-brand-blue">Edit →</span>
       </Link>
+
+      {ADMIN_ROLES.includes(profile?.role) && (
+        <section className="mt-6 rounded-xl border border-brand-gold/40 bg-brand-amber/5 p-4">
+          <h2 className="text-sm font-semibold tracking-wide text-brand-ink/50 uppercase">Employee Information</h2>
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <div className="text-xs font-medium tracking-wide text-brand-ink/40 uppercase">Role</div>
+              <div className="text-brand-ink">{ROLE_LABELS[profile.role] ?? profile.role}</div>
+            </div>
+            {profile.staff_position && (
+              <div>
+                <div className="text-xs font-medium tracking-wide text-brand-ink/40 uppercase">Position</div>
+                <div className="text-brand-ink">{STAFF_POSITION_LABELS[profile.staff_position] ?? profile.staff_position}</div>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       <section className="mt-8">
         <h2 className="text-xl font-semibold text-brand-ink/90">Upcoming Enrolled Courses</h2>

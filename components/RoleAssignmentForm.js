@@ -10,6 +10,7 @@ const ROLES = [
   { value: 'admin', label: 'Admin' },
   { value: 'marketing', label: 'Admin / Marketing' },
   { value: 'accounting', label: 'Admin / Accounting' },
+  { value: 'manager', label: 'Admin / Manager' },
 ];
 
 const STAFF_POSITIONS = [

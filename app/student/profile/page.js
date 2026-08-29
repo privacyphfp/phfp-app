@@ -1,9 +1,10 @@
 import { requireProfile } from '@/lib/auth';
 import { signAvatarUrl } from '@/lib/avatarUrl';
+import { ADMIN_ROLES } from '@/lib/roles';
 import ProfileForm from './ProfileForm';
 
 export default async function ProfilePage() {
-  const { supabase, profile } = await requireProfile(['student', 'volunteer', 'admin', 'marketing', 'accounting']);
+  const { supabase, profile } = await requireProfile(['student', 'volunteer', ...ADMIN_ROLES]);
   const avatarSignedUrl = await signAvatarUrl(supabase, profile?.avatar_url);
 
   return (

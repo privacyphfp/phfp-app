@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { requireProfile } from '@/lib/auth';
+import { ADMIN_ROLES } from '@/lib/roles';
 import { signCertificateUrls } from '@/lib/certificateUrl';
 import RoleAssignmentForm from '@/components/RoleAssignmentForm';
 import TitheAmountForm from '@/components/TitheAmountForm';
@@ -19,7 +20,7 @@ function Field({ label, value }) {
 
 export default async function AdminStudentDetailPage({ params }) {
   const { id } = await params;
-  const { supabase } = await requireProfile(['admin']);
+  const { supabase } = await requireProfile(ADMIN_ROLES);
 
   const [{ data: student }, { data: enrollments }, { data: regions }, { data: certificates }, { data: courses }] =
     await Promise.all([

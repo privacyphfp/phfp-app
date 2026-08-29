@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { requireProfile } from '@/lib/auth';
+import { ADMIN_ROLES } from '@/lib/roles';
 import { formatInstructorName } from '@/lib/formatInstructor';
 import CreateOfferingForm from './CreateOfferingForm';
 import ExportEnrollmentsButton from '@/components/ExportEnrollmentsButton';
@@ -11,7 +12,7 @@ const EVENT_TYPE_LABELS = {
 };
 
 export default async function AdminCoursesPage() {
-  const { supabase } = await requireProfile(['admin']);
+  const { supabase } = await requireProfile(ADMIN_ROLES);
 
   const [{ data: courses }, { data: offerings }, { data: enrollments }, { data: regions }, { data: events }, { data: instructors }] =
     await Promise.all([

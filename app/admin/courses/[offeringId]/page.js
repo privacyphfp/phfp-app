@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { requireProfile } from '@/lib/auth';
+import { ADMIN_ROLES } from '@/lib/roles';
 import { formatInstructorName } from '@/lib/formatInstructor';
 import { signReceiptUrls } from '@/lib/receiptUrl';
 import PaymentVerifyForm from '@/components/PaymentVerifyForm';
@@ -9,7 +10,7 @@ import ExportEnrollmentsButton from '@/components/ExportEnrollmentsButton';
 
 export default async function AdminOfferingRosterPage({ params }) {
   const { offeringId } = await params;
-  const { supabase } = await requireProfile(['admin']);
+  const { supabase } = await requireProfile(ADMIN_ROLES);
 
   const { data: offering } = await supabase
     .from('course_offerings')
