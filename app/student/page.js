@@ -6,6 +6,7 @@ import { signReceiptUrls } from '@/lib/receiptUrl';
 import { signAvatarUrl } from '@/lib/avatarUrl';
 import { ADMIN_ROLES, ROLE_LABELS } from '@/lib/roles';
 import { formatInstructorName } from '@/lib/formatInstructor';
+import { formatCourseDateRange } from '@/lib/dateRange';
 import EnrollButton from '@/components/EnrollButton';
 import CourseBingoBoard from '@/components/CourseBingoBoard';
 
@@ -141,11 +142,7 @@ export default async function StudentPage() {
               <div className="flex items-baseline justify-between">
                 <span className="font-medium text-brand-ink">{e.course_offerings?.courses?.name}</span>
                 <span className="text-brand-ink/50">
-                  {e.course_offerings?.start_date}
-                  {e.course_offerings?.end_date && e.course_offerings.end_date !== e.course_offerings.start_date
-                    ? ` – ${e.course_offerings.end_date}`
-                    : ''}{' '}
-                  — {e.status}
+                  {formatCourseDateRange(e.course_offerings?.start_date, e.course_offerings?.end_date)} — {e.status}
                 </span>
               </div>
               {(e.amount_paid != null || e.receiptSignedUrl) && (
@@ -200,11 +197,7 @@ export default async function StudentPage() {
                 </Link>
                 <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-brand-ink/60">
                   <span>
-                    📅{' '}
-                    <span className="font-medium text-brand-blue">
-                      {o.start_date}
-                      {o.end_date && o.end_date !== o.start_date ? ` – ${o.end_date}` : ''}
-                    </span>
+                    📅 <span className="font-medium text-brand-blue">{formatCourseDateRange(o.start_date, o.end_date)}</span>
                   </span>
                   <span>📍 {o.is_online ? 'Online' : o.location || 'TBD'}</span>
                 </div>

@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { PAYMENT_METHOD_LABELS, PAYMENT_METHODS_NEEDING_PROOF } from '@/lib/paymentMethods';
 import { exceedsMaxUploadSize, MAX_UPLOAD_LABEL } from '@/lib/fileUpload';
 import { NDA_PARAGRAPHS } from '@/lib/ndaText';
+import { formatCourseDateRange } from '@/lib/dateRange';
 import SignaturePad from '@/components/SignaturePad';
 import SuccessModal from '@/components/SuccessModal';
 import Modal from '@/components/Modal';
@@ -114,7 +115,7 @@ export default function EnrollButton({
   const inputClass =
     'mb-3 w-full rounded-lg border border-brand-blue/20 px-3 py-1.5 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20 dark:bg-zinc-900';
 
-  const dateRange = startDate ? `${startDate}${endDate && endDate !== startDate ? ` – ${endDate}` : ''}` : null;
+  const dateRange = startDate ? formatCourseDateRange(startDate, endDate) : null;
 
   return (
     <div>
