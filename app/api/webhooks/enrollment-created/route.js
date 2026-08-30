@@ -1,14 +1,20 @@
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { isValidWebhookSecret, notifyUsers } from '@/lib/notify';
+import { sendEmail } from '@/lib/email';
+import { enrollmentConfirmationEmail } from '@/lib/emailTemplates';
 import { ADMIN_ROLES } from '@/lib/roles';
 
 // Fired by the on_enrollment_created database trigger (see migration
-// 0033) right after a student enrolls. Notifies every admin-tier user by
-// email + push — every enrollment needs a look either way (new roster
-// entry, and if there's money involved, someone has to verify it) —
-// plus the course's instructor, if they have a real linked account
-// (course_offerings.instructor_id, as opposed to a free-text
-// instructor_name for someone who hasn't signed up yet).
+// 0033) right after a student enrolls. Notifies:
+// - Every admin-tier user, by email + push — every enrollment needs a
+//   look either way (new roster entry, and if there's money involved,
+//   someone has to verify it).
+// - The course's instructor, if they have a real linked account
+//   (course_offerings.instructor_id, as opposed to a free-text
+//   instructor_name for someone who hasn't signed up yet) — a lighter
+//   notice with no payment detail, that's not their job.
+// - The student themselves, by email only — a plain confirmation that
+//   their enrollment was received (see lib/emailTemplates.js).
 export async function POST(request) {
   if (!isValidWebhookSecret(request)) {
     return Response.json({ error: 'Invalid webhook secret' }, { status: 401 });
@@ -20,7 +26,7 @@ export async function POST(request) {
     const { data: enrollment } = await supabaseAdmin
       .from('enrollments')
       .select(
-        'id, enrollment_type, tithe_amount, profiles(full_name, first_name, last_name), course_offerings(price, start_date, instructor_id, courses(name))'
+        'id, enrollment_type, tithe_amount, profiles(email, full_name, first_name, last_name), course_offerings(price, start_date, end_date, location, is_online, instructor_id, courses(name))'
       )
       .eq('id', enrollmentId)
       .single();
@@ -69,6 +75,21 @@ export async function POST(request) {
           url: '/student',
         },
       });
+    }
+
+    // Confirms to the student that their enrollment was received — not
+    // that payment is verified, that's a separate step staff does.
+    if (enrollment.profiles?.email) {
+      const { subject, html } = enrollmentConfirmationEmail({
+        studentName,
+        courseName,
+        startDate: enrollment.course_offerings?.start_date,
+        endDate: enrollment.course_offerings?.end_date,
+        location: enrollment.course_offerings?.location,
+        isOnline: enrollment.course_offerings?.is_online,
+        isReview,
+      });
+      await sendEmail({ to: enrollment.profiles.email, subject, html });
     }
 
     return Response.json({ ok: true });
