@@ -59,7 +59,7 @@ export default async function AdminOfferingRosterPage({ params }) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl p-8">
+    <div className="mx-auto w-full max-w-6xl p-8">
       <Link href="/admin/courses" className="text-sm text-brand-blue hover:underline">
         ← Back to Manage Course Offerings
       </Link>
@@ -92,74 +92,92 @@ export default async function AdminOfferingRosterPage({ params }) {
         )}
       </div>
 
-      <ul className="mt-4 space-y-3">
-        {enrollmentsWithReceipts.map((e) => {
-          const name = e.profiles?.full_name || [e.profiles?.first_name, e.profiles?.last_name].filter(Boolean).join(' ') || 'Unnamed student';
-          return (
-            <li key={e.id} className="rounded-xl border border-brand-blue/15 bg-white/60 p-4 text-sm shadow-sm dark:bg-white/5">
-              <div className="flex items-baseline justify-between">
-                <Link href={`/admin/students/${e.student_id}`} className="font-medium text-brand-ink hover:underline">
-                  {name}
-                </Link>
-                <span className="text-brand-ink/50">{e.profiles?.email}</span>
-              </div>
-              <div className="mt-1 text-brand-ink/60">
-                {e.status}
-                {' · '}
-                <span className={e.enrollment_type === 'review' ? 'text-brand-flame' : ''}>
-                  {e.enrollment_type === 'review' ? 'Review' : 'New'}
-                </span>
-                {e.referred_by && ` · Referred by ${e.referred_by}`}
-                {e.enrollment_type === 'review' && e.tithe_amount != null && (
-                  <>
-                    {' · '}
-                    <span className="whitespace-nowrap">Tithe: ₱{e.tithe_amount}</span>
-                  </>
-                )}
-                {e.payment_method && ` · ${PAYMENT_METHOD_LABELS[e.payment_method] ?? e.payment_method}`}
-                {e.paymentProofSignedUrl && (
-                  <>
-                    {' · '}
-                    <a
-                      href={e.paymentProofSignedUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-brand-blue underline underline-offset-2"
-                    >
-                      View proof of payment
-                    </a>
-                  </>
-                )}
-              </div>
-
-              <PaymentVerifyForm
-                enrollmentId={e.id}
-                initialAmountPaid={e.amount_paid}
-                initialVerified={e.payment_verified}
-                initialInvoiceNumber={e.invoice_number}
-                initialPaymentDate={e.payment_date}
-              />
-
-              <div className="mt-2 flex flex-wrap items-center gap-3">
-                {e.receiptSignedUrl && (
-                  <a
-                    href={e.receiptSignedUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-brand-blue underline underline-offset-2"
-                  >
-                    View current receipt
-                  </a>
-                )}
-              </div>
-              <ReceiptUploadForm enrollmentId={e.id} studentId={e.student_id} />
-
-              <AttendanceStatusForm enrollmentId={e.id} initialStatus={e.status} />
-            </li>
-          );
-        })}
-        {!enrollmentsWithReceipts.length && <p className="text-brand-ink/50">No one has enrolled yet.</p>}
-      </ul>
+      {enrollmentsWithReceipts.length > 0 ? (
+        <div className="mt-4 overflow-x-auto rounded-xl border border-brand-blue/15 bg-white/60 shadow-sm dark:bg-white/5">
+          <table className="w-full min-w-[900px] border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-brand-blue/15 text-left text-xs font-semibold tracking-wide text-brand-ink/50 uppercase">
+                <th className="p-3">Student</th>
+                <th className="p-3">Enrollment</th>
+                <th className="p-3">Payment</th>
+                <th className="p-3">Receipt</th>
+                <th className="p-3">Attendance</th>
+              </tr>
+            </thead>
+            <tbody>
+              {enrollmentsWithReceipts.map((e) => {
+                const name =
+                  e.profiles?.full_name ||
+                  [e.profiles?.first_name, e.profiles?.last_name].filter(Boolean).join(' ') ||
+                  'Unnamed student';
+                return (
+                  <tr key={e.id} className="border-b border-brand-blue/10 align-top last:border-0">
+                    <td className="min-w-[160px] p-3">
+                      <Link href={`/admin/students/${e.student_id}`} className="font-medium text-brand-ink hover:underline">
+                        {name}
+                      </Link>
+                      <div className="mt-0.5 text-xs text-brand-ink/50">{e.profiles?.email}</div>
+                    </td>
+                    <td className="min-w-[180px] p-3 text-brand-ink/60">
+                      {e.status}
+                      {' · '}
+                      <span className={e.enrollment_type === 'review' ? 'text-brand-flame' : ''}>
+                        {e.enrollment_type === 'review' ? 'Review' : 'New'}
+                      </span>
+                      {e.referred_by && (
+                        <div className="mt-0.5 whitespace-nowrap">Referred by {e.referred_by}</div>
+                      )}
+                      {e.enrollment_type === 'review' && e.tithe_amount != null && (
+                        <div className="mt-0.5 whitespace-nowrap">Tithe: ₱{e.tithe_amount}</div>
+                      )}
+                      {e.payment_method && (
+                        <div className="mt-0.5 whitespace-nowrap">{PAYMENT_METHOD_LABELS[e.payment_method] ?? e.payment_method}</div>
+                      )}
+                      {e.paymentProofSignedUrl && (
+                        <a
+                          href={e.paymentProofSignedUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-0.5 block whitespace-nowrap text-brand-blue underline underline-offset-2"
+                        >
+                          View proof of payment
+                        </a>
+                      )}
+                    </td>
+                    <td className="min-w-[260px] p-3">
+                      <PaymentVerifyForm
+                        enrollmentId={e.id}
+                        initialAmountPaid={e.amount_paid}
+                        initialVerified={e.payment_verified}
+                        initialInvoiceNumber={e.invoice_number}
+                        initialPaymentDate={e.payment_date}
+                      />
+                    </td>
+                    <td className="min-w-[220px] p-3">
+                      {e.receiptSignedUrl && (
+                        <a
+                          href={e.receiptSignedUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mb-1 block whitespace-nowrap text-xs text-brand-blue underline underline-offset-2"
+                        >
+                          View current receipt
+                        </a>
+                      )}
+                      <ReceiptUploadForm enrollmentId={e.id} studentId={e.student_id} />
+                    </td>
+                    <td className="min-w-[200px] p-3">
+                      <AttendanceStatusForm enrollmentId={e.id} initialStatus={e.status} />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="mt-4 text-brand-ink/50">No one has enrolled yet.</p>
+      )}
     </div>
   );
 }
