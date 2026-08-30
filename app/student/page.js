@@ -191,16 +191,17 @@ export default async function StudentPage() {
                 key={o.id}
                 className="rounded-xl border border-brand-gold/40 bg-brand-amber/5 p-4 shadow-sm"
               >
-                <div className="flex items-baseline justify-between">
-                  <Link href={`/courses/${o.course_id}`} className="font-medium text-brand-ink hover:underline">
-                    {o.courses?.name}
-                  </Link>
-                  <span className="text-sm text-brand-ink/50">
-                    Date of Course: <span className="font-medium text-brand-blue">{o.start_date}</span>
+                <Link href={`/courses/${o.course_id}`} className="font-medium text-brand-ink hover:underline">
+                  {o.courses?.name}
+                </Link>
+                <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-brand-ink/60">
+                  <span>
+                    📅 <span className="font-medium text-brand-blue">{o.start_date}</span>
                   </span>
+                  <span>📍 {o.is_online ? 'Online' : o.location || 'TBD'}</span>
                 </div>
                 <div className="mt-1 text-sm text-brand-ink/60">
-                  {o.is_online ? 'Online' : o.location || 'TBD'} · {o.price ? `₱${o.price}` : 'Free'}
+                  Fee: <span className="font-medium text-brand-ink">{o.price ? `₱${o.price}` : 'Free'}</span>
                 </div>
                 {instructorLabel(o) && (
                   <div className="mt-1 text-sm text-brand-ink/60">

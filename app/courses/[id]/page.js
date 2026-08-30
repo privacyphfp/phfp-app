@@ -340,17 +340,19 @@ export default async function CourseDetailPage({ params }) {
           const alreadyEnrolled = enrolledOfferingIds.has(o.id);
           return (
             <li key={o.id} className="rounded-xl border border-brand-blue/15 bg-white/60 p-4 shadow-sm dark:bg-white/5">
-              <div className="flex items-baseline justify-between">
-                <span className="text-sm text-brand-ink/50">
-                  Date of Course:{' '}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-brand-ink/60">
+                <span>
+                  📅{' '}
                   <span className="font-medium text-brand-blue">
                     {o.start_date}
                     {o.end_date && o.end_date !== o.start_date ? ` – ${o.end_date}` : ''}
                   </span>
                 </span>
-                <span className="text-sm text-brand-ink/50">{o.price ? `₱${o.price}` : 'Free'}</span>
+                <span>📍 {o.is_online ? 'Online' : o.location || 'TBD'}</span>
               </div>
-              <div className="mt-1 text-sm text-brand-ink/60">{o.is_online ? 'Online' : o.location || 'TBD'}</div>
+              <div className="mt-1 text-sm text-brand-ink/60">
+                Fee: <span className="font-medium text-brand-ink">{o.price ? `₱${o.price}` : 'Free'}</span>
+              </div>
               {instructorLabel(o) && (
                 <div className="mt-1 text-sm text-brand-ink/60">
                   Instructor/s: <span className="font-medium text-brand-ink">{instructorLabel(o)}</span>

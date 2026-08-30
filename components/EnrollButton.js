@@ -130,13 +130,16 @@ export default function EnrollButton({
         {(courseName || dateRange) && (
           <div className="mb-4 rounded-lg bg-brand-blue/5 p-3 text-sm">
             {courseName && <div className="font-medium text-brand-ink">{courseName}</div>}
-            {dateRange && (
-              <div className="mt-0.5 text-brand-ink/60">
-                Date of Course: <span className="font-medium text-brand-blue">{dateRange}</span>
-              </div>
-            )}
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-brand-ink/60">
+              {dateRange && (
+                <span>
+                  📅 <span className="font-medium text-brand-blue">{dateRange}</span>
+                </span>
+              )}
+              <span>📍 {isOnline ? 'Online' : location || 'TBD'}</span>
+            </div>
             <div className="mt-0.5 text-brand-ink/60">
-              {isOnline ? 'Online' : location || 'TBD'} · {price ? `₱${price}` : 'Free'}
+              Fee: <span className="font-medium text-brand-ink">{price ? `₱${price}` : 'Free'}</span>
             </div>
             {instructor && (
               <div className="mt-0.5 text-brand-ink/60">
