@@ -341,9 +341,12 @@ export default async function CourseDetailPage({ params }) {
           return (
             <li key={o.id} className="rounded-xl border border-brand-blue/15 bg-white/60 p-4 shadow-sm dark:bg-white/5">
               <div className="flex items-baseline justify-between">
-                <span className="font-medium text-brand-blue">
-                  {o.start_date}
-                  {o.end_date && o.end_date !== o.start_date ? ` – ${o.end_date}` : ''}
+                <span className="text-sm text-brand-ink/50">
+                  Date of Course:{' '}
+                  <span className="font-medium text-brand-blue">
+                    {o.start_date}
+                    {o.end_date && o.end_date !== o.start_date ? ` – ${o.end_date}` : ''}
+                  </span>
                 </span>
                 <span className="text-sm text-brand-ink/50">{o.price ? `₱${o.price}` : 'Free'}</span>
               </div>
