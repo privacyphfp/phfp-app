@@ -25,7 +25,7 @@ export default async function SiteHeader() {
   const roleLinks = user
     ? [
         ...(isAdminTier ? [{ href: '/admin', label: 'Admin Dashboard' }] : []),
-        { href: '/student', label: 'My Profile' },
+        { href: '/student', label: 'My Dashboard' },
       ]
     : [];
 
