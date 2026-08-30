@@ -194,16 +194,6 @@ export default async function AdminStudentDetailPage({ params }) {
                   : 'Not applicable'}
             </p>
           </div>
-          <div>
-            <div className="text-xs font-medium uppercase tracking-wide text-brand-ink/40">
-              Photo / Publicity Consent
-            </div>
-            <p className="mt-1 text-sm text-brand-ink">
-              {student.photo_consent_agreed_at
-                ? `Consented ${new Date(student.photo_consent_agreed_at).toLocaleDateString()}`
-                : 'Not given'}
-            </p>
-          </div>
         </div>
       </section>
 

@@ -10,16 +10,18 @@ import { NDA_PARAGRAPHS } from '@/lib/ndaText';
 import { exceedsMaxUploadSize, MAX_UPLOAD_LABEL } from '@/lib/fileUpload';
 
 // Replaces the old single "Data Protection and Privacy" signed document
-// with a plain-language notice the student checks off, paired with
-// separate, purpose-specific consent checkboxes further down the form —
-// so declining an optional one never blocks basic use of the app.
+// with a plain-language notice the student checks off. Consenting to this
+// notice (required for any save) is what covers optional/sensitive uses
+// too — e.g. religion data — rather than a separate checkbox per field, so
+// declining to fill in an optional field never blocks basic use of the app.
 const PRIVACY_NOTICE_PARAGRAPHS = [
   `The Pranic Healing Foundation of the Philippines (PHFP) collects only the personal data needed to run your student account and your course enrollments, in line with the Data Privacy Act of 2012 (RA 10173).`,
   `Required — First Name, Last Name, Email, Phone, City, Province/Region, and Country are needed to create your account, process enrollments, and reach you about the courses you sign up for.`,
   `Optional — Profile Photo, Nickname, Date of Birth, Address, Social Media Account, Profession, and Company/Organization support administrative and community functions (e.g. attendance, ID verification, networking). You can use the app without providing these.`,
-  `Sensitive, with your specific consent — Religion / spiritual or philosophical affiliation is only collected and used if you choose to share it and separately consent below.`,
+  `Your profile photo is private — visible only to you and to authorized PHFP staff/admins. It is never made public or used for promotional purposes.`,
+  `Sensitive — Religion / spiritual or philosophical affiliation is only collected and used if you choose to share it. Filling it in and confirming below that you've read this notice is your consent to that specific use.`,
   `Your data is accessible only to authorized PHFP staff and instructors administering your courses. We do not sell, rent, lease, or share it with third parties outside PHFP without your consent, except where required by law.`,
-  `You may access, correct, or request deletion of your data, and withdraw any consent you've given — for communications, photo/video use, or religion data — at any time by emailing pranichealingphilippines@yahoo.com. Withdrawing consent will not affect your ability to use your basic student account.`,
+  `You may access, correct, or request deletion of your data, and withdraw any consent you've given — for communications or religion data — at any time by emailing pranichealingphilippines@yahoo.com. Withdrawing consent will not affect your ability to use your basic student account.`,
   `We keep your data for as long as your account is active and as needed for legitimate record-keeping, such as certificates and course history.`,
 ];
 
@@ -57,15 +59,14 @@ export default function ProfileForm({ profile, avatarSignedUrl }) {
   const [profession, setProfession] = useState(profile?.profession ?? '');
   const [company, setCompany] = useState(profile?.company ?? '');
 
-  // Sensitive, with specific consent
+  // Sensitive — consent for this is covered by the General Privacy Notice
+  // acknowledgment below, not a separate checkbox (see PRIVACY_NOTICE_PARAGRAPHS).
   const [religion, setReligion] = useState(profile?.religion ?? '');
-  const [religionConsent, setReligionConsent] = useState(!!profile?.religion_consent_agreed_at);
 
   // Optional opt-in consents
   const [updatesViaText, setUpdatesViaText] = useState(!!profile?.updates_via_text);
   const [updatesViaEmail, setUpdatesViaEmail] = useState(!!profile?.updates_via_email);
   const [updatesViaSocial, setUpdatesViaSocial] = useState(!!profile?.updates_via_social);
-  const [photoConsent, setPhotoConsent] = useState(!!profile?.photo_consent_agreed_at);
 
   // Required acknowledgments
   const [privacyNoticeAgreed, setPrivacyNoticeAgreed] = useState(!!profile?.privacy_notice_agreed_at);
@@ -87,11 +88,6 @@ export default function ProfileForm({ profile, avatarSignedUrl }) {
 
     if (!privacyNoticeAgreed) {
       setError('Please confirm you have read the PHFP Privacy Notice before saving.');
-      return;
-    }
-
-    if (religion.trim() && !religionConsent) {
-      setError('Please consent to processing your religion/spiritual affiliation, or leave that field blank.');
       return;
     }
 
@@ -139,11 +135,12 @@ export default function ProfileForm({ profile, avatarSignedUrl }) {
           profession: profession || null,
           company: company || null,
           religion: religion || null,
-          religion_consent_agreed_at: religion.trim() ? (religionConsent ? (profile?.religion_consent_agreed_at ?? now) : null) : null,
+          // Consenting to the Privacy Notice below (required for any save)
+          // covers consent for religion data too, if the field is filled in.
+          religion_consent_agreed_at: religion.trim() ? (profile?.religion_consent_agreed_at ?? now) : null,
           updates_via_text: updatesViaText,
           updates_via_email: updatesViaEmail,
           updates_via_social: updatesViaSocial,
-          photo_consent_agreed_at: photoConsent ? (profile?.photo_consent_agreed_at ?? now) : null,
           privacy_notice_agreed_at: profile?.privacy_notice_agreed_at ?? now,
           nda_signature: ndaSignature,
           nda_agreed_at: ndaSignature ? (ndaDirty ? now : profile?.nda_agreed_at) : null,
@@ -307,19 +304,6 @@ export default function ProfileForm({ profile, avatarSignedUrl }) {
               <input value={religion} onChange={(e) => setReligion(e.target.value)} className={inputClass} />
             </div>
           </div>
-
-          <label className="flex items-start gap-2 text-sm text-brand-ink/80">
-            <input
-              type="checkbox"
-              checked={religionConsent}
-              onChange={(e) => setReligionConsent(e.target.checked)}
-              className="mt-0.5 accent-brand-blue"
-            />
-            <span>
-              I consent to the processing of my religion/spiritual affiliation for the purposes explained in the
-              Privacy Notice below (only needed if you filled that in).
-            </span>
-          </label>
         </section>
 
         {/* -------------------------------------------------- */}
@@ -359,25 +343,6 @@ export default function ProfileForm({ profile, avatarSignedUrl }) {
               Social Media
             </label>
           </div>
-        </section>
-
-        {/* -------------------------------------------------- */}
-        {/* Photos / Publicity (optional)                       */}
-        {/* -------------------------------------------------- */}
-        <section className="space-y-2">
-          <h2 className="text-lg font-semibold text-brand-blue-dark">Photos / Publicity</h2>
-          <label className="flex items-start gap-2 text-sm text-brand-ink/80">
-            <input
-              type="checkbox"
-              checked={photoConsent}
-              onChange={(e) => setPhotoConsent(e.target.checked)}
-              className="mt-0.5 accent-brand-blue"
-            />
-            <span>
-              I consent to PHFP using my photographs/videos for public promotional or educational materials.{' '}
-              <span className="text-brand-ink/40">(optional)</span>
-            </span>
-          </label>
         </section>
 
         {/* -------------------------------------------------- */}
