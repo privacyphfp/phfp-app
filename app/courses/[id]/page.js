@@ -8,6 +8,7 @@ import { formatInstructorName } from '@/lib/formatInstructor';
 import { KNOWN_INSTRUCTOR_NAMES } from '@/lib/knownInstructors';
 import { signCertificateUrls } from '@/lib/certificateUrl';
 import { formatCourseDateRange } from '@/lib/dateRange';
+import { isPastOffering } from '@/lib/offeringStatus';
 import EnrollButton from '@/components/EnrollButton';
 import CertificateUploadForm from '@/components/CertificateUploadForm';
 import FitHeading from '@/components/FitHeading';
@@ -73,7 +74,11 @@ export default async function CourseDetailPage({ params }) {
   const courseNameById = Object.fromEntries((allCourses ?? []).map((c) => [c.id, c.name]));
   const requiredCourseIds = (prereqRows ?? []).map((p) => p.prerequisite_course_id);
 
-  const instructorIds = [...new Set((offerings ?? []).map((o) => o.instructor_id).filter(Boolean))];
+  // Past offerings drop off this list entirely — still visible in Reports
+  // and the Calendar, just not here.
+  const upcomingOfferings = (offerings ?? []).filter((o) => !isPastOffering(o));
+
+  const instructorIds = [...new Set(upcomingOfferings.map((o) => o.instructor_id).filter(Boolean))];
   const { data: instructorProfiles } = instructorIds.length
     ? await supabase.from('profiles').select('id, full_name, first_name, last_name').in('id', instructorIds)
     : { data: [] };
@@ -337,7 +342,7 @@ export default async function CourseDetailPage({ params }) {
         Upcoming Offerings
       </h2>
       <ul className="mt-4 space-y-3">
-        {(offerings ?? []).map((o) => {
+        {upcomingOfferings.map((o) => {
           const alreadyEnrolled = enrolledOfferingIds.has(o.id);
           return (
             <li key={o.id} className="rounded-xl border border-brand-blue/15 bg-white/60 p-4 shadow-sm dark:bg-white/5">
@@ -392,7 +397,7 @@ export default async function CourseDetailPage({ params }) {
             </li>
           );
         })}
-        {!(offerings ?? []).length && <p className="text-brand-ink/50">No offerings scheduled yet.</p>}
+        {!upcomingOfferings.length && <p className="text-brand-ink/50">No offerings scheduled yet.</p>}
       </ul>
         </div>
       </div>

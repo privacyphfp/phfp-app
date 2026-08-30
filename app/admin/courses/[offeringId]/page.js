@@ -73,7 +73,11 @@ export default async function AdminOfferingRosterPage({ params }) {
         {offering.is_online ? 'Online' : offering.location || 'TBD'} ·{' '}
         {offering.price ? `₱${offering.price}` : 'Free'} · {offering.regions?.name ?? 'Nationwide'}
       </div>
-      {instructor && <div className="mt-1 text-sm text-brand-ink/60">Instructor/s: {instructor}</div>}
+      {instructor && (
+        <div className="mt-1 text-sm text-brand-ink/60">
+          Instructor/s: <span className="font-medium text-brand-ink">{instructor}</span>
+        </div>
+      )}
 
       <div className="mt-6 flex items-baseline justify-between">
         <h2 className="text-lg font-semibold text-brand-ink/90">

@@ -7,10 +7,16 @@ import { signAvatarUrl } from '@/lib/avatarUrl';
 import { ADMIN_ROLES, ROLE_LABELS } from '@/lib/roles';
 import { formatInstructorName } from '@/lib/formatInstructor';
 import { formatCourseDateRange } from '@/lib/dateRange';
+import { isPastOffering, isToday } from '@/lib/offeringStatus';
 import EnrollButton from '@/components/EnrollButton';
 import CourseBingoBoard from '@/components/CourseBingoBoard';
 
 const STAFF_POSITION_LABELS = { instructor: 'Instructor', center_manager: 'Center Manager' };
+const EVENT_TYPE_LABELS = {
+  one_time: 'One-time',
+  special: 'Special event',
+  weekly: 'Weekly event',
+};
 
 export default async function StudentPage() {
   // Every role is also a student here — admin/marketing/accounting/manager
@@ -21,26 +27,41 @@ export default async function StudentPage() {
   const profileComplete = isProfileComplete(profile);
   const today = new Date().toISOString().slice(0, 10);
 
-  const [{ data: courses }, { data: prereqs }, { data: offerings }, { data: myEnrollments }, { data: myCertificates }] =
-    await Promise.all([
-      supabase.from('courses').select('id, code, name, series').order('code'),
-      supabase.from('course_prerequisites').select('course_id, prerequisite_course_id'),
-      supabase
-        .from('course_offerings')
-        .select(
-          'id, start_date, end_date, location, is_online, price, capacity, course_id, instructor_id, instructor_name, courses(name)'
-        )
-        .order('start_date'),
-      supabase
-        .from('enrollments')
-        .select(
-          'id, status, enrollment_type, amount_paid, payment_verified, receipt_url, course_offering_id, course_offerings(id, start_date, end_date, course_id, courses(name))'
-        )
-        .eq('student_id', user.id),
-      supabase.from('certificates').select('course_id, verified').eq('student_id', user.id),
-    ]);
+  const [
+    { data: courses },
+    { data: prereqs },
+    { data: offerings },
+    { data: myEnrollments },
+    { data: myCertificates },
+    { data: events },
+  ] = await Promise.all([
+    supabase.from('courses').select('id, code, name, series').order('code'),
+    supabase.from('course_prerequisites').select('course_id, prerequisite_course_id'),
+    supabase
+      .from('course_offerings')
+      .select(
+        'id, start_date, end_date, location, is_online, price, capacity, course_id, instructor_id, instructor_name, courses(name)'
+      )
+      .order('start_date'),
+    supabase
+      .from('enrollments')
+      .select(
+        'id, status, enrollment_type, amount_paid, payment_verified, receipt_url, course_offering_id, course_offerings(id, start_date, end_date, course_id, courses(name))'
+      )
+      .eq('student_id', user.id),
+    supabase.from('certificates').select('course_id, verified').eq('student_id', user.id),
+    supabase
+      .from('events')
+      .select('id, title, event_type, start_date, end_date, location, is_online')
+      .order('start_date', { ascending: true }),
+  ]);
 
-  const instructorIds = [...new Set((offerings ?? []).map((o) => o.instructor_id).filter(Boolean))];
+  // Past offerings/events drop off the enroll list entirely — still
+  // visible in Reports and the Calendar, just not here.
+  const upcomingOfferings = (offerings ?? []).filter((o) => !isPastOffering(o));
+  const upcomingEvents = (events ?? []).filter((ev) => !isPastOffering(ev));
+
+  const instructorIds = [...new Set(upcomingOfferings.map((o) => o.instructor_id).filter(Boolean))];
   const { data: instructorProfiles } = instructorIds.length
     ? await supabase.from('profiles').select('id, full_name, first_name, last_name').in('id', instructorIds)
     : { data: [] };
@@ -53,6 +74,14 @@ export default async function StudentPage() {
     }
     return formatInstructorName(o.instructor_name) || null;
   }
+
+  // Merged, date-sorted list for "Upcoming Courses and Events" and the
+  // "Today" callout above it.
+  const upcomingItems = [
+    ...upcomingOfferings.map((o) => ({ kind: 'course', id: o.id, startDate: o.start_date, data: o })),
+    ...upcomingEvents.map((ev) => ({ kind: 'event', id: ev.id, startDate: ev.start_date, data: ev })),
+  ].sort((a, b) => a.startDate.localeCompare(b.startDate));
+  const todayItems = upcomingItems.filter((item) => isToday(item.data));
 
   const completedCourseIds = new Set([
     ...(myEnrollments ?? []).filter((e) => e.status === 'completed').map((e) => e.course_offerings?.course_id),
@@ -75,6 +104,78 @@ export default async function StudentPage() {
       .filter((e) => e.status !== 'cancelled' && (e.course_offerings?.start_date ?? '') >= today)
       .sort((a, b) => (a.course_offerings?.start_date ?? '').localeCompare(b.course_offerings?.start_date ?? ''))
   );
+
+  function ItemCard({ item }) {
+    if (item.kind === 'event') {
+      const ev = item.data;
+      return (
+        <li className="rounded-xl border border-brand-gold/40 bg-brand-amber/5 p-4 shadow-sm">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <span className="font-medium text-brand-ink">{ev.title}</span>
+            <span className="rounded-full bg-brand-flame/10 px-2 py-0.5 text-xs font-medium text-brand-flame">
+              {EVENT_TYPE_LABELS[ev.event_type] ?? ev.event_type}
+            </span>
+          </div>
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-brand-ink/60">
+            <span>
+              📅 <span className="font-medium text-brand-blue">{formatCourseDateRange(ev.start_date, ev.end_date)}</span>
+            </span>
+            <span>📍 {ev.is_online ? 'Online' : ev.location || 'TBD'}</span>
+          </div>
+        </li>
+      );
+    }
+
+    const o = item.data;
+    const elig = eligibility[o.course_id] ?? { eligible: true, missing: [] };
+    const alreadyEnrolled = enrolledOfferingIds.has(o.id);
+    return (
+      <li className="rounded-xl border border-brand-gold/40 bg-brand-amber/5 p-4 shadow-sm">
+        <Link href={`/courses/${o.course_id}`} className="font-medium text-brand-ink hover:underline">
+          {o.courses?.name}
+        </Link>
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-brand-ink/60">
+          <span>
+            📅 <span className="font-medium text-brand-blue">{formatCourseDateRange(o.start_date, o.end_date)}</span>
+          </span>
+          <span>📍 {o.is_online ? 'Online' : o.location || 'TBD'}</span>
+        </div>
+        <div className="mt-1 text-sm text-brand-ink/60">
+          Fee: <span className="font-medium text-brand-ink">{o.price ? `₱${o.price}` : 'Free'}</span>
+        </div>
+        {instructorLabel(o) && (
+          <div className="mt-1 text-sm text-brand-ink/60">
+            Instructor/s: <span className="font-medium text-brand-ink">{instructorLabel(o)}</span>
+          </div>
+        )}
+        {!elig.eligible && <p className="mt-2 text-sm text-brand-flame">Requires: {elig.missing.join(', ')}</p>}
+        {!alreadyEnrolled && elig.eligible && !profileComplete && (
+          <p className="mt-2 text-sm text-brand-flame">
+            Please{' '}
+            <Link href="/student/profile" className="underline underline-offset-2">
+              complete your profile
+            </Link>{' '}
+            before enrolling.
+          </p>
+        )}
+        <div className="mt-3">
+          <EnrollButton
+            offeringId={o.id}
+            studentId={user.id}
+            courseName={o.courses?.name}
+            startDate={o.start_date}
+            endDate={o.end_date}
+            location={o.location}
+            isOnline={o.is_online}
+            instructor={instructorLabel(o)}
+            price={o.price}
+            disabled={alreadyEnrolled || !elig.eligible || !profileComplete}
+            label={alreadyEnrolled ? 'Enrolled' : 'Enroll'}
+          />
+        </div>
+      </li>
+    );
+  }
 
   return (
     <div className="mx-auto w-full max-w-3xl p-8">
@@ -181,65 +282,29 @@ export default async function StudentPage() {
         </div>
       </section>
 
+      {todayItems.length > 0 && (
+        <section className="mt-10">
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-semibold text-brand-ink/90">Courses and Events Today</h2>
+            <span className="rounded-full bg-brand-flame/10 px-2.5 py-0.5 text-xs font-semibold text-brand-flame">
+              {todayItems.length}
+            </span>
+          </div>
+          <ul className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {todayItems.map((item) => (
+              <ItemCard key={`${item.kind}-${item.id}`} item={item} />
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section className="mt-10">
-        <h2 className="text-xl font-semibold text-brand-ink/90">Available Offerings</h2>
+        <h2 className="text-xl font-semibold text-brand-ink/90">Upcoming Courses and Events</h2>
         <ul className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {(offerings ?? []).map((o) => {
-            const elig = eligibility[o.course_id] ?? { eligible: true, missing: [] };
-            const alreadyEnrolled = enrolledOfferingIds.has(o.id);
-            return (
-              <li
-                key={o.id}
-                className="rounded-xl border border-brand-gold/40 bg-brand-amber/5 p-4 shadow-sm"
-              >
-                <Link href={`/courses/${o.course_id}`} className="font-medium text-brand-ink hover:underline">
-                  {o.courses?.name}
-                </Link>
-                <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-brand-ink/60">
-                  <span>
-                    📅 <span className="font-medium text-brand-blue">{formatCourseDateRange(o.start_date, o.end_date)}</span>
-                  </span>
-                  <span>📍 {o.is_online ? 'Online' : o.location || 'TBD'}</span>
-                </div>
-                <div className="mt-1 text-sm text-brand-ink/60">
-                  Fee: <span className="font-medium text-brand-ink">{o.price ? `₱${o.price}` : 'Free'}</span>
-                </div>
-                {instructorLabel(o) && (
-                  <div className="mt-1 text-sm text-brand-ink/60">
-                    Instructor/s: <span className="font-medium text-brand-ink">{instructorLabel(o)}</span>
-                  </div>
-                )}
-                {!elig.eligible && (
-                  <p className="mt-2 text-sm text-brand-flame">Requires: {elig.missing.join(', ')}</p>
-                )}
-                {!alreadyEnrolled && elig.eligible && !profileComplete && (
-                  <p className="mt-2 text-sm text-brand-flame">
-                    Please{' '}
-                    <Link href="/student/profile" className="underline underline-offset-2">
-                      complete your profile
-                    </Link>{' '}
-                    before enrolling.
-                  </p>
-                )}
-                <div className="mt-3">
-                  <EnrollButton
-                    offeringId={o.id}
-                    studentId={user.id}
-                    courseName={o.courses?.name}
-                    startDate={o.start_date}
-                    endDate={o.end_date}
-                    location={o.location}
-                    isOnline={o.is_online}
-                    instructor={instructorLabel(o)}
-                    price={o.price}
-                    disabled={alreadyEnrolled || !elig.eligible || !profileComplete}
-                    label={alreadyEnrolled ? 'Enrolled' : 'Enroll'}
-                  />
-                </div>
-              </li>
-            );
-          })}
-          {!(offerings ?? []).length && <p className="text-brand-ink/50">No offerings scheduled yet.</p>}
+          {upcomingItems.map((item) => (
+            <ItemCard key={`${item.kind}-${item.id}`} item={item} />
+          ))}
+          {!upcomingItems.length && <p className="text-brand-ink/50">No offerings scheduled yet.</p>}
         </ul>
       </section>
     </div>

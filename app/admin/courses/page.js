@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { requireProfile } from '@/lib/auth';
 import { ADMIN_ROLES } from '@/lib/roles';
 import { formatInstructorName } from '@/lib/formatInstructor';
+import { isPastOffering } from '@/lib/offeringStatus';
 import CreateOfferingForm from './CreateOfferingForm';
 import ExportEnrollmentsButton from '@/components/ExportEnrollmentsButton';
 
@@ -22,7 +23,7 @@ export default async function AdminCoursesPage() {
         .select(
           'id, start_date, end_date, location, is_online, capacity, price, status, course_id, region_id, instructor_id, instructor_name'
         )
-        .order('start_date', { ascending: false }),
+        .order('start_date', { ascending: true }),
       supabase.from('enrollments').select('course_offering_id'),
       supabase.from('regions').select('id, name').order('name'),
       supabase
@@ -49,6 +50,45 @@ export default async function AdminCoursesPage() {
     enrollmentCounts[e.course_offering_id] = (enrollmentCounts[e.course_offering_id] ?? 0) + 1;
   }
 
+  const upcomingOfferings = (offerings ?? []).filter((o) => !isPastOffering(o));
+  const pastOfferings = (offerings ?? []).filter((o) => isPastOffering(o)).reverse();
+
+  function OfferingCard({ o }) {
+    return (
+      <div className="rounded-xl border border-brand-blue/15 bg-white/60 p-4 shadow-sm dark:bg-white/5">
+        <div className="flex items-baseline justify-between">
+          <Link href={`/admin/courses/${o.id}`} className="font-medium text-brand-ink hover:underline">
+            {courseById[o.course_id]?.name ?? 'Unknown course'}
+          </Link>
+          <Link
+            href={`/admin/courses/${o.id}`}
+            className="rounded-full bg-brand-blue/10 px-2.5 py-0.5 text-xs font-medium text-brand-blue hover:bg-brand-blue/20"
+          >
+            {enrollmentCounts[o.id] ?? 0}
+            {o.capacity ? ` / ${o.capacity}` : ''} enrolled
+          </Link>
+        </div>
+        <div className="mt-1 text-sm text-brand-ink/60">
+          {o.start_date}
+          {o.end_date && o.end_date !== o.start_date ? ` – ${o.end_date}` : ''} ·{' '}
+          {o.is_online ? 'Online' : o.location || 'TBD'} · {o.price ? `₱${o.price}` : 'Free'} · {o.status} ·{' '}
+          {regionById[o.region_id]?.name ?? 'Nationwide'}
+        </div>
+        <div className="mt-1 text-sm text-brand-ink/60">
+          Instructor/s: <span className="font-medium text-brand-ink">{instructorLabel(o) || 'Not assigned'}</span>
+        </div>
+        {(enrollmentCounts[o.id] ?? 0) > 0 && (
+          <div className="mt-3">
+            <ExportEnrollmentsButton
+              offeringId={o.id}
+              fileName={`${courseById[o.course_id]?.code ?? 'course'}-${o.start_date}-roster`}
+            />
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto w-full max-w-4xl p-8">
       <h1 className="text-2xl font-semibold text-brand-blue-dark">Manage Course Offerings &amp; Events</h1>
@@ -59,39 +99,24 @@ export default async function AdminCoursesPage() {
 
       <h2 className="mt-10 text-lg font-semibold text-brand-ink/90">Course Offerings</h2>
       <div className="mt-4 space-y-3">
-        {(offerings ?? []).map((o) => (
-          <div key={o.id} className="rounded-xl border border-brand-blue/15 bg-white/60 p-4 shadow-sm dark:bg-white/5">
-            <div className="flex items-baseline justify-between">
-              <Link href={`/admin/courses/${o.id}`} className="font-medium text-brand-ink hover:underline">
-                {courseById[o.course_id]?.name ?? 'Unknown course'}
-              </Link>
-              <Link
-                href={`/admin/courses/${o.id}`}
-                className="rounded-full bg-brand-blue/10 px-2.5 py-0.5 text-xs font-medium text-brand-blue hover:bg-brand-blue/20"
-              >
-                {enrollmentCounts[o.id] ?? 0}
-                {o.capacity ? ` / ${o.capacity}` : ''} enrolled
-              </Link>
-            </div>
-            <div className="mt-1 text-sm text-brand-ink/60">
-              {o.start_date}
-              {o.end_date && o.end_date !== o.start_date ? ` – ${o.end_date}` : ''} ·{' '}
-              {o.is_online ? 'Online' : o.location || 'TBD'} · {o.price ? `₱${o.price}` : 'Free'} · {o.status} ·{' '}
-              {regionById[o.region_id]?.name ?? 'Nationwide'}
-            </div>
-            <div className="mt-1 text-sm text-brand-ink/60">Instructor/s: {instructorLabel(o) || 'Not assigned'}</div>
-            {(enrollmentCounts[o.id] ?? 0) > 0 && (
-              <div className="mt-3">
-                <ExportEnrollmentsButton
-                  offeringId={o.id}
-                  fileName={`${courseById[o.course_id]?.code ?? 'course'}-${o.start_date}-roster`}
-                />
-              </div>
-            )}
-          </div>
+        {upcomingOfferings.map((o) => (
+          <OfferingCard key={o.id} o={o} />
         ))}
-        {!(offerings ?? []).length && <p className="text-brand-ink/50">No course offerings yet.</p>}
+        {!upcomingOfferings.length && <p className="text-brand-ink/50">No upcoming course offerings.</p>}
       </div>
+
+      {pastOfferings.length > 0 && (
+        <details className="mt-6">
+          <summary className="cursor-pointer text-sm font-medium text-brand-blue">
+            Past Offerings ({pastOfferings.length}) — still counted in Reports and shown on the Calendar
+          </summary>
+          <div className="mt-3 space-y-3">
+            {pastOfferings.map((o) => (
+              <OfferingCard key={o.id} o={o} />
+            ))}
+          </div>
+        </details>
+      )}
 
       <h2 className="mt-10 text-lg font-semibold text-brand-ink/90">Events</h2>
       <div className="mt-4 space-y-3">

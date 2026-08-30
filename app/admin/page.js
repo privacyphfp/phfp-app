@@ -4,12 +4,19 @@ import { ADMIN_ROLES } from '@/lib/roles';
 import { signCertificateUrls } from '@/lib/certificateUrl';
 import { formatInstructorName } from '@/lib/formatInstructor';
 import { formatCourseDateRange } from '@/lib/dateRange';
+import { isPastOffering, isToday } from '@/lib/offeringStatus';
 import CertificateVerifyButton from '@/components/CertificateVerifyButton';
 import PaymentVerifyForm from '@/components/PaymentVerifyForm';
 
 function studentName(p) {
   return p?.full_name || [p?.first_name, p?.last_name].filter(Boolean).join(' ') || 'Unnamed student';
 }
+
+const EVENT_TYPE_LABELS = {
+  one_time: 'One-time',
+  special: 'Special event',
+  weekly: 'Weekly event',
+};
 
 export default async function AdminPage() {
   const { supabase } = await requireProfile(ADMIN_ROLES);
@@ -22,6 +29,7 @@ export default async function AdminPage() {
     { data: unverifiedEnrollments },
     { data: allOfferings },
     { data: enrollmentCounts },
+    { data: allEvents },
   ] = await Promise.all([
     supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'student'),
     supabase.from('course_offerings').select('*', { count: 'exact', head: true }),
@@ -46,8 +54,12 @@ export default async function AdminPage() {
       .select(
         'id, start_date, end_date, location, is_online, price, capacity, status, instructor_id, instructor_name, courses(code, name)'
       )
-      .order('start_date', { ascending: false }),
+      .order('start_date', { ascending: true }),
     supabase.from('enrollments').select('course_offering_id, enrollment_type, status').neq('status', 'cancelled'),
+    supabase
+      .from('events')
+      .select('id, title, event_type, start_date, end_date, location, is_online')
+      .order('start_date', { ascending: true }),
   ]);
 
   const certificatesWithUrls = await signCertificateUrls(supabase, pendingCertificates ?? []);
@@ -71,10 +83,24 @@ export default async function AdminPage() {
     (e) => (e.course_offerings?.price ?? 0) > 0 || e.enrollment_type === 'review'
   );
 
+  // Past offerings/events drop off this dashboard summary entirely — still
+  // visible in Reports and the Calendar, and via "Manage Course Offerings"
+  // for anyone who needs to reach an old roster.
+  const upcomingOfferings = (allOfferings ?? []).filter((o) => !isPastOffering(o));
+  const upcomingEvents = (allEvents ?? []).filter((ev) => !isPastOffering(ev));
+
+  // Merged, date-sorted list for the "Upcoming Courses and Events" grid
+  // and the "Today" callout above it.
+  const upcomingItems = [
+    ...upcomingOfferings.map((o) => ({ kind: 'course', id: o.id, startDate: o.start_date, data: o })),
+    ...upcomingEvents.map((ev) => ({ kind: 'event', id: ev.id, startDate: ev.start_date, data: ev })),
+  ].sort((a, b) => a.startDate.localeCompare(b.startDate));
+  const todayItems = upcomingItems.filter((item) => isToday(item.data));
+
   const instructorIds = [
     ...new Set([
       ...pendingPayments.map((e) => e.course_offerings?.instructor_id),
-      ...(allOfferings ?? []).map((o) => o.instructor_id),
+      ...upcomingOfferings.map((o) => o.instructor_id),
     ]),
   ].filter(Boolean);
   const { data: instructorProfiles } = instructorIds.length
@@ -114,6 +140,58 @@ export default async function AdminPage() {
     countsByOfferingId.set(e.course_offering_id, entry);
   }
 
+  function ItemCard({ item }) {
+    if (item.kind === 'event') {
+      const ev = item.data;
+      return (
+        <div className="rounded-xl border border-brand-gold/40 bg-brand-amber/5 p-4 shadow-sm">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <p className="font-semibold text-brand-ink">{ev.title}</p>
+            <span className="rounded-full bg-brand-flame/10 px-2 py-0.5 text-xs font-medium text-brand-flame">
+              {EVENT_TYPE_LABELS[ev.event_type] ?? ev.event_type}
+            </span>
+          </div>
+          <p className="mt-0.5 text-sm text-brand-ink/60">
+            📅 <span className="font-medium text-brand-blue">{formatCourseDateRange(ev.start_date, ev.end_date)}</span>
+          </p>
+          <p className="mt-0.5 text-sm text-brand-ink/60">📍 {ev.is_online ? 'Online' : ev.location || 'TBD'}</p>
+        </div>
+      );
+    }
+
+    const o = item.data;
+    const counts = countsByOfferingId.get(o.id) ?? { newCount: 0, reviewCount: 0 };
+    const total = counts.newCount + counts.reviewCount;
+    return (
+      <Link
+        href={`/admin/courses/${o.id}`}
+        className="block rounded-xl border border-brand-gold/40 bg-brand-amber/5 p-4 shadow-sm transition-colors hover:bg-brand-amber/20"
+      >
+        <p className="font-semibold text-brand-ink">{o.courses?.code || o.courses?.name || 'Unknown course'}</p>
+        <p className="mt-0.5 text-sm text-brand-ink/60">
+          📅 <span className="font-medium text-brand-blue">{formatCourseDateRange(o.start_date, o.end_date)}</span>
+        </p>
+        <p className="mt-0.5 text-sm text-brand-ink/60">
+          📍 {o.is_online ? 'Online' : o.location || 'TBD'} · Fee: {o.price ? `₱${o.price}` : 'Free'}
+        </p>
+        <p className="mt-0.5 text-sm text-brand-ink/60">
+          Instructor/s: <span className="font-medium text-brand-ink">{offeringInstructorLabel(o) || 'Not assigned'}</span>
+        </p>
+        <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
+          <span className="rounded-full bg-brand-blue/10 px-2 py-0.5 font-medium text-brand-blue">New: {counts.newCount}</span>
+          <span className="rounded-full bg-brand-flame/10 px-2 py-0.5 font-medium text-brand-flame">
+            Review: {counts.reviewCount}
+          </span>
+          <span className="rounded-full bg-white/70 px-2 py-0.5 font-medium text-brand-ink/50 dark:bg-white/10">
+            Total: {total}
+            {o.capacity ? ` / ${o.capacity}` : ''}
+          </span>
+        </div>
+        <span className="mt-3 inline-block text-xs font-medium text-brand-blue">View Roster →</span>
+      </Link>
+    );
+  }
+
   return (
     <div className="mx-auto w-full max-w-3xl p-8">
       <h1 className="text-2xl font-semibold text-brand-blue-dark">Admin Dashboard</h1>
@@ -141,46 +219,32 @@ export default async function AdminPage() {
         </Link>
       </div>
 
+      {todayItems.length > 0 && (
+        <section className="mt-10">
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-semibold text-brand-ink/90">Courses and Events Today</h2>
+            <span className="rounded-full bg-brand-flame/10 px-2.5 py-0.5 text-xs font-semibold text-brand-flame">
+              {todayItems.length}
+            </span>
+          </div>
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {todayItems.map((item) => (
+              <ItemCard key={`${item.kind}-${item.id}`} item={item} />
+            ))}
+          </div>
+        </section>
+      )}
+
       <section className="mt-10">
-        <h2 className="text-xl font-semibold text-brand-ink/90">Course Offerings</h2>
+        <h2 className="text-xl font-semibold text-brand-ink/90">Upcoming Courses and Events</h2>
         <p className="mt-1 text-sm text-brand-ink/60">Who&apos;s enrolled per offering, at a glance.</p>
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {(allOfferings ?? []).map((o) => {
-            const counts = countsByOfferingId.get(o.id) ?? { newCount: 0, reviewCount: 0 };
-            const total = counts.newCount + counts.reviewCount;
-            return (
-              <Link
-                key={o.id}
-                href={`/admin/courses/${o.id}`}
-                className="block rounded-xl border border-brand-gold/40 bg-brand-amber/5 p-4 shadow-sm transition-colors hover:bg-brand-amber/20"
-              >
-                <p className="font-semibold text-brand-ink">{o.courses?.code || o.courses?.name || 'Unknown course'}</p>
-                <p className="mt-0.5 text-sm text-brand-ink/60">
-                  📅 <span className="font-medium text-brand-blue">{formatCourseDateRange(o.start_date, o.end_date)}</span>
-                </p>
-                <p className="mt-0.5 text-sm text-brand-ink/60">
-                  📍 {o.is_online ? 'Online' : o.location || 'TBD'} · Fee: {o.price ? `₱${o.price}` : 'Free'}
-                </p>
-                <p className="mt-0.5 text-sm text-brand-ink/60">
-                  Instructor/s: {offeringInstructorLabel(o) || 'Not assigned'}
-                </p>
-                <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
-                  <span className="rounded-full bg-brand-blue/10 px-2 py-0.5 font-medium text-brand-blue">
-                    New: {counts.newCount}
-                  </span>
-                  <span className="rounded-full bg-brand-flame/10 px-2 py-0.5 font-medium text-brand-flame">
-                    Review: {counts.reviewCount}
-                  </span>
-                  <span className="rounded-full bg-white/70 px-2 py-0.5 font-medium text-brand-ink/50 dark:bg-white/10">
-                    Total: {total}
-                    {o.capacity ? ` / ${o.capacity}` : ''}
-                  </span>
-                </div>
-                <span className="mt-3 inline-block text-xs font-medium text-brand-blue">View Roster →</span>
-              </Link>
-            );
-          })}
-          {!(allOfferings ?? []).length && <p className="text-sm text-brand-ink/50">No course offerings yet.</p>}
+          {upcomingItems.map((item) => (
+            <ItemCard key={`${item.kind}-${item.id}`} item={item} countsByOfferingId={countsByOfferingId} offeringInstructorLabel={offeringInstructorLabel} />
+          ))}
+          {!upcomingItems.length && (
+            <p className="text-sm text-brand-ink/50">Nothing upcoming — see Reports or the Calendar for past ones.</p>
+          )}
         </div>
       </section>
 
@@ -261,7 +325,8 @@ export default async function AdminPage() {
                 </span>
               </div>
               <p className="mt-1 text-sm text-brand-ink/60">
-                Instructor/s: {offeringInstructorLabel(group.offering) || 'Not assigned'}
+                Instructor/s:{' '}
+                <span className="font-medium text-brand-ink">{offeringInstructorLabel(group.offering) || 'Not assigned'}</span>
               </p>
 
               <ul className="mt-3 space-y-2">
