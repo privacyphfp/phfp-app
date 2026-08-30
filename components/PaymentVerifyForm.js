@@ -70,11 +70,11 @@ export default function PaymentVerifyForm({
         onChange={(e) => setInvoiceNumber(e.target.value)}
         className="w-28 rounded-lg border border-brand-blue/20 px-2 py-1 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20 dark:bg-zinc-900"
       />
+      <span className="text-brand-ink/60">Date paid:</span>
       <input
         type="date"
         value={paymentDate}
         onChange={(e) => setPaymentDate(e.target.value)}
-        title="Date paid"
         className="rounded-lg border border-brand-blue/20 px-2 py-1 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20 dark:bg-zinc-900"
       />
       <label className="flex items-center gap-1.5 text-brand-ink/70">

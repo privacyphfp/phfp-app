@@ -134,7 +134,6 @@ export default async function AdminOfferingRosterPage({ params }) {
                 initialInvoiceNumber={e.invoice_number}
                 initialPaymentDate={e.payment_date}
               />
-              <AttendanceStatusForm enrollmentId={e.id} initialStatus={e.status} />
 
               <div className="mt-2 flex flex-wrap items-center gap-3">
                 {e.receiptSignedUrl && (
@@ -149,6 +148,8 @@ export default async function AdminOfferingRosterPage({ params }) {
                 )}
               </div>
               <ReceiptUploadForm enrollmentId={e.id} studentId={e.student_id} />
+
+              <AttendanceStatusForm enrollmentId={e.id} initialStatus={e.status} />
             </li>
           );
         })}
