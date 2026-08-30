@@ -7,6 +7,7 @@ import { COUNTRIES } from '@/lib/countries';
 import SignaturePad from '@/components/SignaturePad';
 import SuccessModal from '@/components/SuccessModal';
 import { NDA_PARAGRAPHS } from '@/lib/ndaText';
+import { exceedsMaxUploadSize, MAX_UPLOAD_LABEL } from '@/lib/fileUpload';
 
 // Replaces the old single "Data Protection and Privacy" signed document
 // with a plain-language notice the student checks off, paired with
@@ -99,6 +100,11 @@ export default function ProfileForm({ profile, avatarSignedUrl }) {
 
     if (religion.trim() && !religionConsent) {
       setError('Please consent to processing your religion/spiritual affiliation, or leave that field blank.');
+      return;
+    }
+
+    if (exceedsMaxUploadSize(avatarFile)) {
+      setError(`Profile photo must be ${MAX_UPLOAD_LABEL} or smaller.`);
       return;
     }
 
@@ -263,6 +269,9 @@ export default function ProfileForm({ profile, avatarSignedUrl }) {
                 >
                   Choose Photo to Upload
                 </label>
+                <p className="mt-1.5 text-xs text-brand-ink/50">
+                  {avatarFile ? avatarFile.name : 'No file chosen'} · Max {MAX_UPLOAD_LABEL}
+                </p>
                 <input
                   id="avatar-file"
                   type="file"

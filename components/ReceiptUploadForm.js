@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { exceedsMaxUploadSize, MAX_UPLOAD_LABEL } from '@/lib/fileUpload';
 
 export default function ReceiptUploadForm({ enrollmentId, studentId }) {
   const router = useRouter();
@@ -16,6 +17,10 @@ export default function ReceiptUploadForm({ enrollmentId, studentId }) {
 
     if (!file) {
       setError('Please choose a file to upload.');
+      return;
+    }
+    if (exceedsMaxUploadSize(file)) {
+      setError(`File must be ${MAX_UPLOAD_LABEL} or smaller.`);
       return;
     }
 
@@ -57,7 +62,9 @@ export default function ReceiptUploadForm({ enrollmentId, studentId }) {
       >
         Choose File to Upload
       </label>
-      <span className="truncate text-xs text-brand-ink/50">{file ? file.name : 'No file chosen'}</span>
+      <span className="truncate text-xs text-brand-ink/50">
+        {file ? file.name : 'No file chosen'} · Max {MAX_UPLOAD_LABEL}
+      </span>
       <input
         id={fileInputId}
         type="file"

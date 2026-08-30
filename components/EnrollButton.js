@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { PAYMENT_METHOD_LABELS, PAYMENT_METHODS_NEEDING_PROOF, MAX_PAYMENT_PROOF_BYTES } from '@/lib/paymentMethods';
+import { PAYMENT_METHOD_LABELS, PAYMENT_METHODS_NEEDING_PROOF } from '@/lib/paymentMethods';
+import { exceedsMaxUploadSize, MAX_UPLOAD_LABEL } from '@/lib/fileUpload';
 import { NDA_PARAGRAPHS } from '@/lib/ndaText';
 import SignaturePad from '@/components/SignaturePad';
 import SuccessModal from '@/components/SuccessModal';
@@ -40,8 +41,8 @@ export default function EnrollButton({ offeringId, studentId, price, disabled, l
         setError('Please upload proof of payment.');
         return;
       }
-      if (proofFile.size > MAX_PAYMENT_PROOF_BYTES) {
-        setError('Proof of payment must be 5 MB or smaller.');
+      if (exceedsMaxUploadSize(proofFile)) {
+        setError(`Proof of payment must be ${MAX_UPLOAD_LABEL} or smaller.`);
         return;
       }
     }
@@ -188,7 +189,7 @@ export default function EnrollButton({ offeringId, studentId, price, disabled, l
                 Upload Proof of Payment
               </label>
               <p className="mt-1 text-xs text-brand-ink/50">
-                {proofFile ? proofFile.name : 'No file chosen'} · Max 5 MB
+                {proofFile ? proofFile.name : 'No file chosen'} · Max {MAX_UPLOAD_LABEL}
               </p>
               <input
                 id={`proof-file-${offeringId}`}
