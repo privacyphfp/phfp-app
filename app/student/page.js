@@ -199,6 +199,12 @@ export default async function StudentPage() {
                   <EnrollButton
                     offeringId={o.id}
                     studentId={user.id}
+                    courseName={o.courses?.name}
+                    startDate={o.start_date}
+                    endDate={o.end_date}
+                    location={o.location}
+                    isOnline={o.is_online}
+                    price={o.price}
                     disabled={alreadyEnrolled || !elig.eligible || !profileComplete}
                     label={alreadyEnrolled ? 'Enrolled' : 'Enroll'}
                   />

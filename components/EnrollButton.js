@@ -8,9 +8,22 @@ import { exceedsMaxUploadSize, MAX_UPLOAD_LABEL } from '@/lib/fileUpload';
 import { NDA_PARAGRAPHS } from '@/lib/ndaText';
 import SignaturePad from '@/components/SignaturePad';
 import SuccessModal from '@/components/SuccessModal';
+import Modal from '@/components/Modal';
 
-export default function EnrollButton({ offeringId, studentId, price, disabled, label }) {
+export default function EnrollButton({
+  offeringId,
+  studentId,
+  courseName,
+  startDate,
+  endDate,
+  location,
+  isOnline,
+  price,
+  disabled,
+  label,
+}) {
   const router = useRouter();
+  const [open, setOpen] = useState(false);
   const [referredBy, setReferredBy] = useState('');
   const [enrollmentType, setEnrollmentType] = useState('new');
   const [titheAmount, setTitheAmount] = useState('');
@@ -23,7 +36,7 @@ export default function EnrollButton({ offeringId, studentId, price, disabled, l
 
   const needsProof = PAYMENT_METHODS_NEEDING_PROOF.includes(paymentMethod);
 
-  async function handleClick() {
+  async function handleSubmit() {
     if (!referredBy.trim()) {
       setError('Please enter who referred you.');
       return;
@@ -87,6 +100,7 @@ export default function EnrollButton({ offeringId, studentId, price, disabled, l
         return;
       }
 
+      setOpen(false);
       setShowEnrolled(true);
       router.refresh();
     } catch (err) {
@@ -97,133 +111,147 @@ export default function EnrollButton({ offeringId, studentId, price, disabled, l
   }
 
   const inputClass =
-    'mb-2 w-full max-w-xs rounded-lg border border-brand-blue/20 px-3 py-1.5 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20 dark:bg-zinc-900';
+    'mb-3 w-full rounded-lg border border-brand-blue/20 px-3 py-1.5 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20 dark:bg-zinc-900';
+
+  const dateRange = startDate ? `${startDate}${endDate && endDate !== startDate ? ` – ${endDate}` : ''}` : null;
 
   return (
     <div>
-      {!disabled && (
-        <>
-          <div className="mb-2 flex gap-4 text-sm text-brand-ink/80">
-            <label className="flex items-center gap-1.5">
-              <input
-                type="radio"
-                name={`enrollment-type-${offeringId}`}
-                value="new"
-                checked={enrollmentType === 'new'}
-                onChange={() => setEnrollmentType('new')}
-              />
-              New
-            </label>
-            <label className="flex items-center gap-1.5">
-              <input
-                type="radio"
-                name={`enrollment-type-${offeringId}`}
-                value="review"
-                checked={enrollmentType === 'review'}
-                onChange={() => setEnrollmentType('review')}
-              />
-              Review
-            </label>
-          </div>
+      <button
+        onClick={() => setOpen(true)}
+        disabled={disabled}
+        className="rounded-full bg-brand-blue px-4 py-2 text-sm font-medium text-white shadow-sm shadow-brand-blue/20 transition-colors hover:bg-brand-blue-dark disabled:bg-brand-ink/20 disabled:text-brand-ink/50 disabled:shadow-none"
+      >
+        {label}
+      </button>
 
-          {enrollmentType === 'review' ? (
-            <>
-              <p className="mb-2 text-xs text-brand-ink/50">
-                Review students give a tithe based on what they feel the course is worth, instead of the fixed rate.
-              </p>
-              <label className="mb-1 block text-sm text-brand-ink/80">
-                Amount to tithe (₱) <span className="text-red-600">*</span>
-              </label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={titheAmount}
-                onChange={(e) => setTitheAmount(e.target.value)}
-                placeholder="0.00"
-                className={inputClass}
-              />
-            </>
-          ) : (
-            price != null && (
-              <p className="mb-2 text-sm text-brand-ink/70">
-                Amount to pay: <span className="font-medium text-brand-ink">₱{price}</span>
-              </p>
-            )
-          )}
-
-          <label className="mb-1 block text-sm text-brand-ink/80">
-            Referred by <span className="text-red-600">*</span>
-          </label>
-          <input
-            value={referredBy}
-            onChange={(e) => setReferredBy(e.target.value)}
-            placeholder="Who referred you?"
-            className={inputClass}
-          />
-
-          <label className="mb-1 block text-sm text-brand-ink/80">
-            How will you pay? <span className="text-red-600">*</span>
-          </label>
-          <div className="mb-2 flex flex-col gap-1.5 text-sm text-brand-ink/80">
-            {Object.entries(PAYMENT_METHOD_LABELS).map(([value, methodLabel]) => (
-              <label key={value} className="flex items-center gap-1.5">
-                <input
-                  type="radio"
-                  name={`payment-method-${offeringId}`}
-                  value={value}
-                  checked={paymentMethod === value}
-                  onChange={() => setPaymentMethod(value)}
-                />
-                {methodLabel}
-              </label>
-            ))}
-          </div>
-
-          {needsProof && (
-            <div className="mb-2 text-sm">
-              <label
-                htmlFor={`proof-file-${offeringId}`}
-                className="inline-block cursor-pointer rounded-full border border-brand-blue/30 bg-brand-blue/5 px-3 py-1.5 text-xs font-medium text-brand-blue transition-colors hover:border-brand-blue hover:bg-brand-blue/10"
-              >
-                Upload Proof of Payment
-              </label>
-              <p className="mt-1 text-xs text-brand-ink/50">
-                {proofFile ? proofFile.name : 'No file chosen'} · Max {MAX_UPLOAD_LABEL}
-              </p>
-              <input
-                id={`proof-file-${offeringId}`}
-                type="file"
-                accept="image/*,.pdf"
-                onChange={(e) => setProofFile(e.target.files?.[0] ?? null)}
-                className="sr-only"
-              />
+      <Modal open={open} onClose={() => setOpen(false)} title="Enroll" maxWidthClass="max-w-sm">
+        {(courseName || dateRange) && (
+          <div className="mb-4 rounded-lg bg-brand-blue/5 p-3 text-sm">
+            {courseName && <div className="font-medium text-brand-ink">{courseName}</div>}
+            <div className="mt-0.5 text-brand-ink/60">
+              {dateRange}
+              {dateRange && ' · '}
+              {isOnline ? 'Online' : location || 'TBD'} · {price ? `₱${price}` : 'Free'}
             </div>
-          )}
+          </div>
+        )}
 
-          <p className="mb-1 text-sm text-brand-ink/80">
-            Confidentiality and Non-Disclosure Agreement <span className="text-red-600">*</span>
-          </p>
-          <div className="mb-2 max-h-40 max-w-xs space-y-2 overflow-y-auto rounded-lg border border-brand-gold/40 bg-brand-amber/5 p-3 text-xs leading-relaxed text-brand-ink/80">
-            {NDA_PARAGRAPHS.map((p, i) => (
-              <p key={i}>{p}</p>
-            ))}
+        {error && <p className="mb-2 text-sm text-red-600">{error}</p>}
+
+        <div className="mb-3 flex gap-4 text-sm text-brand-ink/80">
+          <label className="flex items-center gap-1.5">
+            <input
+              type="radio"
+              name={`enrollment-type-${offeringId}`}
+              value="new"
+              checked={enrollmentType === 'new'}
+              onChange={() => setEnrollmentType('new')}
+            />
+            New
+          </label>
+          <label className="flex items-center gap-1.5">
+            <input
+              type="radio"
+              name={`enrollment-type-${offeringId}`}
+              value="review"
+              checked={enrollmentType === 'review'}
+              onChange={() => setEnrollmentType('review')}
+            />
+            Review
+          </label>
+        </div>
+
+        {enrollmentType === 'review' ? (
+          <>
+            <label className="mb-1 block text-sm text-brand-ink/80">
+              Amount to tithe (₱) <span className="text-red-600">*</span>
+            </label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={titheAmount}
+              onChange={(e) => setTitheAmount(e.target.value)}
+              placeholder="0.00"
+              className={inputClass}
+            />
+          </>
+        ) : (
+          price != null && (
+            <p className="mb-3 text-sm text-brand-ink/70">
+              Amount to pay: <span className="font-medium text-brand-ink">₱{price}</span>
+            </p>
+          )
+        )}
+
+        <label className="mb-1 block text-sm text-brand-ink/80">
+          Referred by <span className="text-red-600">*</span>
+        </label>
+        <input
+          value={referredBy}
+          onChange={(e) => setReferredBy(e.target.value)}
+          placeholder="Who referred you?"
+          className={inputClass}
+        />
+
+        <label className="mb-1 block text-sm text-brand-ink/80">
+          How will you pay? <span className="text-red-600">*</span>
+        </label>
+        <div className="mb-3 flex flex-col gap-1.5 text-sm text-brand-ink/80">
+          {Object.entries(PAYMENT_METHOD_LABELS).map(([value, methodLabel]) => (
+            <label key={value} className="flex items-center gap-1.5">
+              <input
+                type="radio"
+                name={`payment-method-${offeringId}`}
+                value={value}
+                checked={paymentMethod === value}
+                onChange={() => setPaymentMethod(value)}
+              />
+              {methodLabel}
+            </label>
+          ))}
+        </div>
+
+        {needsProof && (
+          <div className="mb-3 text-sm">
+            <label
+              htmlFor={`proof-file-${offeringId}`}
+              className="inline-block cursor-pointer rounded-full border border-brand-blue/30 bg-brand-blue/5 px-3 py-1.5 text-xs font-medium text-brand-blue transition-colors hover:border-brand-blue hover:bg-brand-blue/10"
+            >
+              Upload Proof of Payment
+            </label>
+            <p className="mt-1 text-xs text-brand-ink/50">
+              {proofFile ? proofFile.name : 'No file chosen'} · Max {MAX_UPLOAD_LABEL}
+            </p>
+            <input
+              id={`proof-file-${offeringId}`}
+              type="file"
+              accept="image/*,.pdf"
+              onChange={(e) => setProofFile(e.target.files?.[0] ?? null)}
+              className="sr-only"
+            />
           </div>
-          <div className="mb-2 max-w-xs">
-            <SignaturePad value={ndaSignature} onChange={setNdaSignature} height={110} />
-          </div>
-        </>
-      )}
-      <div>
+        )}
+
+        <p className="mb-1 text-sm text-brand-ink/80">
+          Confidentiality and Non-Disclosure Agreement <span className="text-red-600">*</span>
+        </p>
+        <div className="mb-3 max-h-32 space-y-2 overflow-y-auto rounded-lg border border-brand-gold/40 bg-brand-amber/5 p-3 text-xs leading-relaxed text-brand-ink/80">
+          {NDA_PARAGRAPHS.map((p, i) => (
+            <p key={i}>{p}</p>
+          ))}
+        </div>
+        <SignaturePad value={ndaSignature} onChange={setNdaSignature} height={100} />
+
         <button
-          onClick={handleClick}
-          disabled={disabled || loading}
-          className="rounded-full bg-brand-blue px-4 py-2 text-sm font-medium text-white shadow-sm shadow-brand-blue/20 transition-colors hover:bg-brand-blue-dark disabled:bg-brand-ink/20 disabled:text-brand-ink/50 disabled:shadow-none"
+          onClick={handleSubmit}
+          disabled={loading}
+          className="mt-4 w-full rounded-full bg-brand-blue px-4 py-2 text-sm font-medium text-white shadow-sm shadow-brand-blue/20 transition-colors hover:bg-brand-blue-dark disabled:opacity-50"
         >
-          {loading ? 'Enrolling…' : label}
+          {loading ? 'Enrolling…' : 'Confirm Enrollment'}
         </button>
-      </div>
-      {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+      </Modal>
 
       <SuccessModal
         open={showEnrolled}
