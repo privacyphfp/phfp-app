@@ -35,14 +35,6 @@ function RequiredLabel({ children }) {
   );
 }
 
-function OptionalLabel({ children }) {
-  return (
-    <label className={labelClass}>
-      {children} <span className="text-brand-ink/40">(optional)</span>
-    </label>
-  );
-}
-
 export default function ProfileForm({ profile, avatarSignedUrl }) {
   const router = useRouter();
 
@@ -186,12 +178,53 @@ export default function ProfileForm({ profile, avatarSignedUrl }) {
         </p>
 
         {/* -------------------------------------------------- */}
-        {/* Personal information (required)                     */}
+        {/* Profile photo                                       */}
+        {/* -------------------------------------------------- */}
+        <div className="flex items-center gap-4">
+          {avatarPreviewUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={avatarPreviewUrl}
+              alt="Profile photo"
+              className="h-20 w-20 rounded-full border border-brand-blue/20 object-cover"
+            />
+          ) : (
+            <div className="flex h-20 w-20 items-center justify-center rounded-full border border-dashed border-brand-blue/30 bg-brand-blue/5 text-xs text-brand-ink/40">
+              No photo
+            </div>
+          )}
+          <div>
+            <label
+              htmlFor="avatar-file"
+              className="cursor-pointer rounded-full border border-brand-blue/30 bg-brand-blue/5 px-3 py-1.5 text-xs font-medium text-brand-blue transition-colors hover:border-brand-blue hover:bg-brand-blue/10"
+            >
+              Choose Photo to Upload
+            </label>
+            <p className="mt-1.5 text-xs text-brand-ink/50">
+              {avatarFile ? avatarFile.name : 'No file chosen'} · Max {MAX_UPLOAD_LABEL}
+            </p>
+            <input
+              id="avatar-file"
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={(e) => {
+                const file = e.target.files?.[0] ?? null;
+                setAvatarFile(file);
+                if (file) setAvatarPreviewUrl(URL.createObjectURL(file));
+              }}
+            />
+          </div>
+        </div>
+
+        {/* -------------------------------------------------- */}
+        {/* Personal information                                */}
         {/* -------------------------------------------------- */}
         <section className="space-y-4">
           <h2 className="text-lg font-semibold text-brand-blue-dark">Personal Information</h2>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {/* Name */}
             <div>
               <RequiredLabel>First Name</RequiredLabel>
               <input required value={firstName} onChange={(e) => setFirstName(e.target.value)} className={inputClass} />
@@ -200,7 +233,21 @@ export default function ProfileForm({ profile, avatarSignedUrl }) {
               <RequiredLabel>Last Name</RequiredLabel>
               <input required value={lastName} onChange={(e) => setLastName(e.target.value)} className={inputClass} />
             </div>
+            <div>
+              <label className={labelClass}>Nickname</label>
+              <input value={nickname} onChange={(e) => setNickname(e.target.value)} className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Date of Birth</label>
+              <input
+                type="date"
+                value={birthdate ?? ''}
+                onChange={(e) => setBirthdate(e.target.value)}
+                className={inputClass}
+              />
+            </div>
 
+            {/* Contact */}
             <div>
               <label className={labelClass}>Email</label>
               <input value={profile?.email ?? ''} disabled className={`${inputClass} opacity-60`} />
@@ -209,7 +256,16 @@ export default function ProfileForm({ profile, avatarSignedUrl }) {
               <RequiredLabel>Phone</RequiredLabel>
               <input required value={phone} onChange={(e) => setPhone(e.target.value)} className={inputClass} />
             </div>
+            <div className="sm:col-span-2">
+              <label className={labelClass}>Social Media Account</label>
+              <input value={fbLink} onChange={(e) => setFbLink(e.target.value)} className={inputClass} />
+            </div>
 
+            {/* Location — kept together */}
+            <div className="sm:col-span-2">
+              <label className={labelClass}>Address</label>
+              <input value={address} onChange={(e) => setAddress(e.target.value)} className={inputClass} />
+            </div>
             <div>
               <RequiredLabel>City</RequiredLabel>
               <input required value={city} onChange={(e) => setCity(e.target.value)} className={inputClass} />
@@ -223,8 +279,7 @@ export default function ProfileForm({ profile, avatarSignedUrl }) {
                 className={inputClass}
               />
             </div>
-
-            <div>
+            <div className="sm:col-span-2">
               <RequiredLabel>Country</RequiredLabel>
               <select required value={country} onChange={(e) => setCountry(e.target.value)} className={inputClass}>
                 <option value="">Select a country</option>
@@ -235,104 +290,25 @@ export default function ProfileForm({ profile, avatarSignedUrl }) {
                 ))}
               </select>
             </div>
-          </div>
-        </section>
 
-        {/* -------------------------------------------------- */}
-        {/* Additional information (optional)                   */}
-        {/* -------------------------------------------------- */}
-        <section className="space-y-4">
-          <h2 className="text-lg font-semibold text-brand-blue-dark">Additional Information</h2>
-          <p className="text-xs text-brand-ink/50">
-            Supports PHFP/community functions like attendance and networking — not required to use the app.
-          </p>
-
-          <div>
-            <OptionalLabel>Profile Photo</OptionalLabel>
-            <div className="mt-2 flex items-center gap-4">
-              {avatarPreviewUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={avatarPreviewUrl}
-                  alt="Profile photo"
-                  className="h-20 w-20 rounded-full border border-brand-blue/20 object-cover"
-                />
-              ) : (
-                <div className="flex h-20 w-20 items-center justify-center rounded-full border border-dashed border-brand-blue/30 bg-brand-blue/5 text-xs text-brand-ink/40">
-                  No photo
-                </div>
-              )}
-              <div>
-                <label
-                  htmlFor="avatar-file"
-                  className="cursor-pointer rounded-full border border-brand-blue/30 bg-brand-blue/5 px-3 py-1.5 text-xs font-medium text-brand-blue transition-colors hover:border-brand-blue hover:bg-brand-blue/10"
-                >
-                  Choose Photo to Upload
-                </label>
-                <p className="mt-1.5 text-xs text-brand-ink/50">
-                  {avatarFile ? avatarFile.name : 'No file chosen'} · Max {MAX_UPLOAD_LABEL}
-                </p>
-                <input
-                  id="avatar-file"
-                  type="file"
-                  accept="image/*"
-                  className="sr-only"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] ?? null;
-                    setAvatarFile(file);
-                    if (file) setAvatarPreviewUrl(URL.createObjectURL(file));
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {/* Work */}
             <div>
-              <OptionalLabel>Nickname</OptionalLabel>
-              <input value={nickname} onChange={(e) => setNickname(e.target.value)} className={inputClass} />
-            </div>
-            <div>
-              <OptionalLabel>Date of Birth</OptionalLabel>
-              <input
-                type="date"
-                value={birthdate ?? ''}
-                onChange={(e) => setBirthdate(e.target.value)}
-                className={inputClass}
-              />
-            </div>
-
-            <div className="sm:col-span-2">
-              <OptionalLabel>Address</OptionalLabel>
-              <input value={address} onChange={(e) => setAddress(e.target.value)} className={inputClass} />
-            </div>
-
-            <div>
-              <OptionalLabel>Social Media Account</OptionalLabel>
-              <input value={fbLink} onChange={(e) => setFbLink(e.target.value)} className={inputClass} />
-            </div>
-            <div>
-              <OptionalLabel>Career / Profession</OptionalLabel>
+              <label className={labelClass}>Career / Profession</label>
               <input value={profession} onChange={(e) => setProfession(e.target.value)} className={inputClass} />
             </div>
-
-            <div className="sm:col-span-2">
-              <OptionalLabel>Company / Organization</OptionalLabel>
+            <div>
+              <label className={labelClass}>Company / Organization</label>
               <input value={company} onChange={(e) => setCompany(e.target.value)} className={inputClass} />
             </div>
-          </div>
-        </section>
 
-        {/* -------------------------------------------------- */}
-        {/* Sensitive information (optional + specific consent) */}
-        {/* -------------------------------------------------- */}
-        <section className="space-y-2 rounded-xl border border-brand-flame/20 bg-brand-amber/5 p-4">
-          <h2 className="text-lg font-semibold text-brand-blue-dark">Sensitive Information</h2>
-          <div>
-            <OptionalLabel>Religion / Spiritual or Philosophical Affiliation</OptionalLabel>
-            <input value={religion} onChange={(e) => setReligion(e.target.value)} className={inputClass} />
+            {/* Religion */}
+            <div className="sm:col-span-2">
+              <label className={labelClass}>Religion / Spiritual or Philosophical Affiliation</label>
+              <input value={religion} onChange={(e) => setReligion(e.target.value)} className={inputClass} />
+            </div>
           </div>
-          <label className="flex items-start gap-2 pt-1 text-sm text-brand-ink/80">
+
+          <label className="flex items-start gap-2 text-sm text-brand-ink/80">
             <input
               type="checkbox"
               checked={religionConsent}
@@ -341,7 +317,7 @@ export default function ProfileForm({ profile, avatarSignedUrl }) {
             />
             <span>
               I consent to the processing of my religion/spiritual affiliation for the purposes explained in the
-              Privacy Notice below. <span className="text-brand-ink/40">(optional — only needed if you fill this in)</span>
+              Privacy Notice below (only needed if you filled that in).
             </span>
           </label>
         </section>
