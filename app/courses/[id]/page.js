@@ -371,6 +371,7 @@ export default async function CourseDetailPage({ params }) {
                     endDate={o.end_date}
                     location={o.location}
                     isOnline={o.is_online}
+                    instructor={instructorLabel(o)}
                     price={o.price}
                     disabled={alreadyEnrolled || !eligible || !profileComplete}
                     label={alreadyEnrolled ? 'Enrolled' : 'Enroll'}

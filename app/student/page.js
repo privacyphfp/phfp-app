@@ -5,6 +5,7 @@ import { isProfileComplete } from '@/lib/profileCompleteness';
 import { signReceiptUrls } from '@/lib/receiptUrl';
 import { signAvatarUrl } from '@/lib/avatarUrl';
 import { ADMIN_ROLES, ROLE_LABELS } from '@/lib/roles';
+import { formatInstructorName } from '@/lib/formatInstructor';
 import EnrollButton from '@/components/EnrollButton';
 import CourseBingoBoard from '@/components/CourseBingoBoard';
 
@@ -25,7 +26,9 @@ export default async function StudentPage() {
       supabase.from('course_prerequisites').select('course_id, prerequisite_course_id'),
       supabase
         .from('course_offerings')
-        .select('id, start_date, end_date, location, is_online, price, capacity, course_id, courses(name)')
+        .select(
+          'id, start_date, end_date, location, is_online, price, capacity, course_id, instructor_id, instructor_name, courses(name)'
+        )
         .order('start_date'),
       supabase
         .from('enrollments')
@@ -35,6 +38,20 @@ export default async function StudentPage() {
         .eq('student_id', user.id),
       supabase.from('certificates').select('course_id, verified').eq('student_id', user.id),
     ]);
+
+  const instructorIds = [...new Set((offerings ?? []).map((o) => o.instructor_id).filter(Boolean))];
+  const { data: instructorProfiles } = instructorIds.length
+    ? await supabase.from('profiles').select('id, full_name, first_name, last_name').in('id', instructorIds)
+    : { data: [] };
+  const instructorById = Object.fromEntries((instructorProfiles ?? []).map((p) => [p.id, p]));
+
+  function instructorLabel(o) {
+    if (o.instructor_id) {
+      const p = instructorById[o.instructor_id];
+      return p ? formatInstructorName(p.full_name || [p.first_name, p.last_name].filter(Boolean).join(' ')) : null;
+    }
+    return formatInstructorName(o.instructor_name) || null;
+  }
 
   const completedCourseIds = new Set([
     ...(myEnrollments ?? []).filter((e) => e.status === 'completed').map((e) => e.course_offerings?.course_id),
@@ -183,6 +200,9 @@ export default async function StudentPage() {
                 <div className="mt-1 text-sm text-brand-ink/60">
                   {o.is_online ? 'Online' : o.location || 'TBD'} · {o.price ? `₱${o.price}` : 'Free'}
                 </div>
+                {instructorLabel(o) && (
+                  <div className="mt-1 text-sm text-brand-ink/60">Instructor/s: {instructorLabel(o)}</div>
+                )}
                 {!elig.eligible && (
                   <p className="mt-2 text-sm text-brand-flame">Requires: {elig.missing.join(', ')}</p>
                 )}
@@ -204,6 +224,7 @@ export default async function StudentPage() {
                     endDate={o.end_date}
                     location={o.location}
                     isOnline={o.is_online}
+                    instructor={instructorLabel(o)}
                     price={o.price}
                     disabled={alreadyEnrolled || !elig.eligible || !profileComplete}
                     label={alreadyEnrolled ? 'Enrolled' : 'Enroll'}

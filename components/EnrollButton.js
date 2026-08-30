@@ -18,6 +18,7 @@ export default function EnrollButton({
   endDate,
   location,
   isOnline,
+  instructor,
   price,
   disabled,
   label,
@@ -134,6 +135,7 @@ export default function EnrollButton({
               {dateRange && ' · '}
               {isOnline ? 'Online' : location || 'TBD'} · {price ? `₱${price}` : 'Free'}
             </div>
+            {instructor && <div className="mt-0.5 text-brand-ink/60">Instructor/s: {instructor}</div>}
           </div>
         )}
 
