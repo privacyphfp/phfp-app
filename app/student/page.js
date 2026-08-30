@@ -10,6 +10,7 @@ import { formatCourseDateRange } from '@/lib/dateRange';
 import { isPastOffering, isToday } from '@/lib/offeringStatus';
 import EnrollButton from '@/components/EnrollButton';
 import CourseBingoBoard from '@/components/CourseBingoBoard';
+import PushNotificationToggle from '@/components/PushNotificationToggle';
 
 const STAFF_POSITION_LABELS = { instructor: 'Instructor', center_manager: 'Center Manager' };
 const EVENT_TYPE_LABELS = {
@@ -206,6 +207,10 @@ export default async function StudentPage() {
           <h1 className="text-2xl font-semibold text-brand-blue-dark">My Dashboard</h1>
           <p className="mt-1 text-brand-ink/60">Welcome, {profile?.full_name || 'Student'}.</p>
         </div>
+      </div>
+
+      <div className="mt-3">
+        <PushNotificationToggle />
       </div>
 
       <Link

@@ -1,0 +1,13 @@
+{
+  "name": "PHFP App",
+  "short_name": "PHFP",
+  "description": "Pranic Healing Foundation of the Philippines",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fffbef",
+  "theme_color": "#00549c",
+  "icons": [
+    { "src": "/logo.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/logo.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

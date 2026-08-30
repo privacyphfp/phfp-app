@@ -16,6 +16,7 @@ export const metadata = {
   title: "PHFP App",
   description:
     "Pranic Healing Foundation of the Philippines — student portal, courses, and events.",
+  manifest: "/manifest.json",
 };
 
 export const viewport = {
