@@ -33,7 +33,7 @@ export default async function StudentPage() {
       supabase
         .from('enrollments')
         .select(
-          'id, status, enrollment_type, amount_paid, payment_verified, receipt_url, course_offering_id, course_offerings(id, start_date, course_id, courses(name))'
+          'id, status, enrollment_type, amount_paid, payment_verified, receipt_url, course_offering_id, course_offerings(id, start_date, end_date, course_id, courses(name))'
         )
         .eq('student_id', user.id),
       supabase.from('certificates').select('course_id, verified').eq('student_id', user.id),
@@ -141,7 +141,11 @@ export default async function StudentPage() {
               <div className="flex items-baseline justify-between">
                 <span className="font-medium text-brand-ink">{e.course_offerings?.courses?.name}</span>
                 <span className="text-brand-ink/50">
-                  {e.course_offerings?.start_date} — {e.status}
+                  {e.course_offerings?.start_date}
+                  {e.course_offerings?.end_date && e.course_offerings.end_date !== e.course_offerings.start_date
+                    ? ` – ${e.course_offerings.end_date}`
+                    : ''}{' '}
+                  — {e.status}
                 </span>
               </div>
               {(e.amount_paid != null || e.receiptSignedUrl) && (
@@ -196,7 +200,11 @@ export default async function StudentPage() {
                 </Link>
                 <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-brand-ink/60">
                   <span>
-                    📅 <span className="font-medium text-brand-blue">{o.start_date}</span>
+                    📅{' '}
+                    <span className="font-medium text-brand-blue">
+                      {o.start_date}
+                      {o.end_date && o.end_date !== o.start_date ? ` – ${o.end_date}` : ''}
+                    </span>
                   </span>
                   <span>📍 {o.is_online ? 'Online' : o.location || 'TBD'}</span>
                 </div>
