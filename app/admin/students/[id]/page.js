@@ -164,12 +164,8 @@ export default async function AdminStudentDetailPage({ params }) {
             )}
           </div>
           <div>
-            <div className="text-xs font-medium uppercase tracking-wide text-brand-ink/40">Privacy Notice</div>
-            {student.privacy_notice_agreed_at ? (
-              <p className="mt-1 text-sm text-brand-ink">
-                Acknowledged {new Date(student.privacy_notice_agreed_at).toLocaleDateString()}
-              </p>
-            ) : student.privacy_signature ? (
+            <div className="text-xs font-medium uppercase tracking-wide text-brand-ink/40">Data Privacy Consent</div>
+            {student.privacy_signature ? (
               <>
                 <img
                   src={student.privacy_signature}
@@ -177,11 +173,11 @@ export default async function AdminStudentDetailPage({ params }) {
                   className="mt-1 h-20 rounded border border-brand-blue/20 bg-white"
                 />
                 <p className="mt-1 text-xs text-brand-ink/50">
-                  Signed (legacy) {student.privacy_agreed_at ? new Date(student.privacy_agreed_at).toLocaleDateString() : ''}
+                  Signed {student.privacy_agreed_at ? new Date(student.privacy_agreed_at).toLocaleDateString() : ''}
                 </p>
               </>
             ) : (
-              <p className="mt-1 text-sm text-brand-flame">Not acknowledged</p>
+              <p className="mt-1 text-sm text-brand-flame">Not signed</p>
             )}
           </div>
           <div>
