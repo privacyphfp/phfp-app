@@ -19,7 +19,11 @@ export default function LoginPage() {
   async function handleResend() {
     setResent(false);
     const supabase = createClient();
-    const { error } = await supabase.auth.resend({ type: 'signup', email });
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/email-confirmed` },
+    });
     if (!error) setResent(true);
   }
 
