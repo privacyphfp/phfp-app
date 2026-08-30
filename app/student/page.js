@@ -76,12 +76,14 @@ export default async function StudentPage() {
   }
 
   // Merged, date-sorted list for "Upcoming Courses and Events" and the
-  // "Today" callout above it.
+  // "Today" callout above it. Anything happening today is only shown in
+  // the Today callout, not duplicated below it.
   const upcomingItems = [
     ...upcomingOfferings.map((o) => ({ kind: 'course', id: o.id, startDate: o.start_date, data: o })),
     ...upcomingEvents.map((ev) => ({ kind: 'event', id: ev.id, startDate: ev.start_date, data: ev })),
   ].sort((a, b) => a.startDate.localeCompare(b.startDate));
   const todayItems = upcomingItems.filter((item) => isToday(item.data));
+  const laterItems = upcomingItems.filter((item) => !isToday(item.data));
 
   const completedCourseIds = new Set([
     ...(myEnrollments ?? []).filter((e) => e.status === 'completed').map((e) => e.course_offerings?.course_id),
@@ -301,10 +303,10 @@ export default async function StudentPage() {
       <section className="mt-10">
         <h2 className="text-xl font-semibold text-brand-ink/90">Upcoming Courses and Events</h2>
         <ul className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {upcomingItems.map((item) => (
+          {laterItems.map((item) => (
             <ItemCard key={`${item.kind}-${item.id}`} item={item} />
           ))}
-          {!upcomingItems.length && <p className="text-brand-ink/50">No offerings scheduled yet.</p>}
+          {!laterItems.length && <p className="text-brand-ink/50">No offerings scheduled yet.</p>}
         </ul>
       </section>
     </div>

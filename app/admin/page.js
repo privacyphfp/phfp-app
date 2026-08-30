@@ -90,12 +90,14 @@ export default async function AdminPage() {
   const upcomingEvents = (allEvents ?? []).filter((ev) => !isPastOffering(ev));
 
   // Merged, date-sorted list for the "Upcoming Courses and Events" grid
-  // and the "Today" callout above it.
+  // and the "Today" callout above it. Anything happening today is only
+  // shown in the Today callout, not duplicated below it.
   const upcomingItems = [
     ...upcomingOfferings.map((o) => ({ kind: 'course', id: o.id, startDate: o.start_date, data: o })),
     ...upcomingEvents.map((ev) => ({ kind: 'event', id: ev.id, startDate: ev.start_date, data: ev })),
   ].sort((a, b) => a.startDate.localeCompare(b.startDate));
   const todayItems = upcomingItems.filter((item) => isToday(item.data));
+  const laterItems = upcomingItems.filter((item) => !isToday(item.data));
 
   const instructorIds = [
     ...new Set([
@@ -239,10 +241,10 @@ export default async function AdminPage() {
         <h2 className="text-xl font-semibold text-brand-ink/90">Upcoming Courses and Events</h2>
         <p className="mt-1 text-sm text-brand-ink/60">Who&apos;s enrolled per offering, at a glance.</p>
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {upcomingItems.map((item) => (
-            <ItemCard key={`${item.kind}-${item.id}`} item={item} countsByOfferingId={countsByOfferingId} offeringInstructorLabel={offeringInstructorLabel} />
+          {laterItems.map((item) => (
+            <ItemCard key={`${item.kind}-${item.id}`} item={item} />
           ))}
-          {!upcomingItems.length && (
+          {!laterItems.length && (
             <p className="text-sm text-brand-ink/50">Nothing upcoming — see Reports or the Calendar for past ones.</p>
           )}
         </div>
