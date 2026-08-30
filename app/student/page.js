@@ -195,13 +195,15 @@ export default async function StudentPage() {
                   <Link href={`/courses/${o.course_id}`} className="font-medium text-brand-ink hover:underline">
                     {o.courses?.name}
                   </Link>
-                  <span className="text-sm text-brand-ink/50">{o.start_date}</span>
+                  <span className="text-sm font-medium text-brand-blue">{o.start_date}</span>
                 </div>
                 <div className="mt-1 text-sm text-brand-ink/60">
                   {o.is_online ? 'Online' : o.location || 'TBD'} · {o.price ? `₱${o.price}` : 'Free'}
                 </div>
                 {instructorLabel(o) && (
-                  <div className="mt-1 text-sm text-brand-ink/60">Instructor/s: {instructorLabel(o)}</div>
+                  <div className="mt-1 text-sm text-brand-ink/60">
+                    Instructor/s: <span className="font-medium text-brand-ink">{instructorLabel(o)}</span>
+                  </div>
                 )}
                 {!elig.eligible && (
                   <p className="mt-2 text-sm text-brand-flame">Requires: {elig.missing.join(', ')}</p>
