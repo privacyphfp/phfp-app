@@ -14,8 +14,33 @@ function urlBase64ToUint8Array(base64String) {
 export default function PushNotificationToggle() {
   const [supported, setSupported] = useState(true);
   const [enabled, setEnabled] = useState(false);
+  const [blocked, setBlocked] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  async function subscribe() {
+    const registration = await navigator.serviceWorker.register('/sw.js');
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      return false;
+    }
+
+    const subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY),
+    });
+
+    const res = await fetch('/api/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: subscription.toJSON() }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || 'Could not save subscription.');
+    }
+    return true;
+  }
 
   useEffect(() => {
     // navigator/window aren't available during SSR, so browser-capability
@@ -26,10 +51,34 @@ export default function PushNotificationToggle() {
       setSupported(false);
       return;
     }
-    navigator.serviceWorker.getRegistration('/sw.js').then(async (reg) => {
+
+    (async () => {
+      const reg = await navigator.serviceWorker.getRegistration('/sw.js');
       const sub = await reg?.pushManager.getSubscription();
-      setEnabled(!!sub);
-    });
+      if (sub) {
+        setEnabled(true);
+        return;
+      }
+
+      // On by default: if they've never been asked and haven't blocked
+      // it, turn notifications on automatically instead of waiting for
+      // them to find and click a button — someone who forgets to opt in
+      // just never hears about anything. Already-denied is left alone;
+      // browsers won't re-prompt for that anyway, only the person can
+      // undo it from their own browser's site settings.
+      if (Notification.permission === 'denied') {
+        setBlocked(true);
+        return;
+      }
+      try {
+        const success = await subscribe();
+        setEnabled(success);
+      } catch {
+        // Silent — this runs unprompted on every dashboard visit until
+        // it succeeds once, so a transient failure shouldn't show an
+        // error message unprompted. The manual button below still works.
+      }
+    })();
   }, []);
 
   async function handleEnable() {
@@ -40,29 +89,11 @@ export default function PushNotificationToggle() {
         setError('Notifications are blocked for this site in your browser settings.');
         return;
       }
-
-      const registration = await navigator.serviceWorker.register('/sw.js');
-      const permission = await Notification.requestPermission();
-      if (permission !== 'granted') {
+      const success = await subscribe();
+      if (!success) {
         setError('Please allow notifications to turn this on.');
         return;
       }
-
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY),
-      });
-
-      const res = await fetch('/api/push/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subscription: subscription.toJSON() }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || 'Could not save subscription.');
-      }
-
       setEnabled(true);
     } catch (err) {
       setError(err.message ?? 'Something went wrong. Please try again.');
@@ -106,6 +137,10 @@ export default function PushNotificationToggle() {
         >
           🔔 Notifications on — turn off
         </button>
+      ) : blocked ? (
+        <span className="text-xs text-brand-ink/40">
+          🔕 Notifications blocked — allow them for this site in your browser settings if you&apos;d like updates.
+        </span>
       ) : (
         <button
           type="button"
