@@ -2,20 +2,36 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { PAYMENT_METHOD_LABELS } from '@/lib/paymentMethods';
 
+// Mirrors the on-screen roster table's columns (see
+// app/admin/courses/[offeringId]/page.js) — Student splits into three
+// (Name/Email/Phone) since a CSV column is naturally one field, and
+// Save isn't data so it's dropped; Receipt becomes a plain Yes/No.
 const COLUMNS = [
+  'Date Enrolled',
   'Full Name',
-  'Birthdate',
-  'Religion',
-  'Address',
-  'Profession',
-  'Phone',
   'Email',
-  'Facebook',
-  'Referred by',
+  'Phone',
   'Type',
-  'Tithe Amount',
+  'Referred By',
+  'Fee / Tithe',
+  'Mode of Payment',
+  'Amount Received',
+  'Invoice #',
+  'Date Paid',
+  'Payment Verified',
+  'Receipt Issued',
+  'Attendance',
 ];
+
+const STATUS_LABELS = {
+  registered: 'Registered',
+  completed: 'Completed',
+  no_show: 'No Show',
+  waitlisted: 'Waitlisted',
+  cancelled: 'Cancelled',
+};
 
 function csvEscape(value) {
   const s = value == null ? '' : String(value);
@@ -43,7 +59,7 @@ export default function ExportEnrollmentsButton({ offeringId, fileName }) {
       const { data, error } = await supabase
         .from('enrollments')
         .select(
-          'referred_by, enrollment_type, tithe_amount, profiles(first_name, last_name, full_name, birthdate, religion, address, profession, phone, email, fb_link)'
+          'enrolled_at, referred_by, enrollment_type, tithe_amount, amount_paid, payment_verified, invoice_number, payment_date, receipt_url, payment_method, status, profiles(first_name, last_name, full_name, email, phone), course_offerings(price)'
         )
         .eq('course_offering_id', offeringId);
 
@@ -55,18 +71,28 @@ export default function ExportEnrollmentsButton({ offeringId, fileName }) {
       const rows = (data ?? []).map((e) => {
         const p = e.profiles ?? {};
         const fullName = [p.first_name, p.last_name].filter(Boolean).join(' ') || p.full_name || '';
+        const isReview = e.enrollment_type === 'review';
         return [
+          e.enrolled_at ? e.enrolled_at.slice(0, 10) : '',
           fullName,
-          p.birthdate ?? '',
-          p.religion ?? '',
-          p.address ?? '',
-          p.profession ?? '',
-          p.phone ?? '',
           p.email ?? '',
-          p.fb_link ?? '',
+          p.phone ?? '',
+          isReview ? 'Review' : 'New',
           e.referred_by ?? '',
-          e.enrollment_type === 'review' ? 'Review' : 'New',
-          e.tithe_amount ?? '',
+          isReview
+            ? e.tithe_amount != null
+              ? `Tithe: ₱${e.tithe_amount}`
+              : 'Tithe: —'
+            : e.course_offerings?.price
+              ? `Fee: ₱${e.course_offerings.price}`
+              : 'Fee: Free',
+          e.payment_method ? (PAYMENT_METHOD_LABELS[e.payment_method] ?? e.payment_method) : '',
+          e.amount_paid ?? '',
+          e.invoice_number ?? '',
+          e.payment_date ?? '',
+          e.payment_verified ? 'Yes' : 'No',
+          e.receipt_url ? 'Yes' : 'No',
+          STATUS_LABELS[e.status] ?? e.status ?? '',
         ];
       });
 
