@@ -1,8 +1,20 @@
 import Image from "next/image";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import logo from "@/public/logo.png";
+import { getAuthedUser } from "@/lib/auth";
+import { ADMIN_ROLES } from "@/lib/roles";
 
-export default function Home() {
+export default async function Home() {
+  // Logged-in visitors (including clicking the logo/"PHFP App" in the
+  // header, which just links here) go straight to their dashboard
+  // instead of this logged-out landing page — landing here while signed
+  // in reads as "did I just get logged out?".
+  const { user, profile } = await getAuthedUser();
+  if (user) {
+    redirect(ADMIN_ROLES.includes(profile?.role) ? "/admin" : "/student");
+  }
+
   return (
     <div className="relative flex flex-1 flex-col items-center justify-center overflow-hidden px-6 py-20 text-center">
       <div
