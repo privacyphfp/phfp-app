@@ -3,6 +3,7 @@ import { requireProfile } from '@/lib/auth';
 import { ADMIN_ROLES } from '@/lib/roles';
 import { signCertificateUrls } from '@/lib/certificateUrl';
 import { formatInstructorName } from '@/lib/formatInstructor';
+import { formatCourseDateRange } from '@/lib/dateRange';
 import CertificateVerifyButton from '@/components/CertificateVerifyButton';
 import PaymentVerifyForm from '@/components/PaymentVerifyForm';
 
@@ -19,6 +20,8 @@ export default async function AdminPage() {
     { count: pendingCount },
     { data: pendingCertificates },
     { data: unverifiedEnrollments },
+    { data: allOfferings },
+    { data: enrollmentCounts },
   ] = await Promise.all([
     supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'student'),
     supabase.from('course_offerings').select('*', { count: 'exact', head: true }),
@@ -38,6 +41,13 @@ export default async function AdminPage() {
       )
       .eq('payment_verified', false)
       .order('enrolled_at', { ascending: true }),
+    supabase
+      .from('course_offerings')
+      .select(
+        'id, start_date, end_date, location, is_online, price, capacity, status, instructor_id, instructor_name, courses(code, name)'
+      )
+      .order('start_date', { ascending: false }),
+    supabase.from('enrollments').select('course_offering_id, enrollment_type, status').neq('status', 'cancelled'),
   ]);
 
   const certificatesWithUrls = await signCertificateUrls(supabase, pendingCertificates ?? []);
@@ -61,11 +71,16 @@ export default async function AdminPage() {
     (e) => (e.course_offerings?.price ?? 0) > 0 || e.enrollment_type === 'review'
   );
 
-  const paymentInstructorIds = [...new Set(pendingPayments.map((e) => e.course_offerings?.instructor_id).filter(Boolean))];
-  const { data: paymentInstructorProfiles } = paymentInstructorIds.length
-    ? await supabase.from('profiles').select('id, full_name, first_name, last_name').in('id', paymentInstructorIds)
+  const instructorIds = [
+    ...new Set([
+      ...pendingPayments.map((e) => e.course_offerings?.instructor_id),
+      ...(allOfferings ?? []).map((o) => o.instructor_id),
+    ]),
+  ].filter(Boolean);
+  const { data: instructorProfiles } = instructorIds.length
+    ? await supabase.from('profiles').select('id, full_name, first_name, last_name').in('id', instructorIds)
     : { data: [] };
-  const instructorById = Object.fromEntries((paymentInstructorProfiles ?? []).map((p) => [p.id, p]));
+  const instructorById = Object.fromEntries((instructorProfiles ?? []).map((p) => [p.id, p]));
 
   function offeringInstructorLabel(o) {
     if (o?.instructor_id) {
@@ -87,6 +102,16 @@ export default async function AdminPage() {
       paymentsByOffering.push(offeringIndex.get(key));
     }
     offeringIndex.get(key).items.push(e);
+  }
+
+  // New vs Review enrollment counts per offering, for the Course
+  // Offerings summary below — excludes cancelled enrollments.
+  const countsByOfferingId = new Map();
+  for (const e of enrollmentCounts ?? []) {
+    const entry = countsByOfferingId.get(e.course_offering_id) ?? { newCount: 0, reviewCount: 0 };
+    if (e.enrollment_type === 'review') entry.reviewCount += 1;
+    else entry.newCount += 1;
+    countsByOfferingId.set(e.course_offering_id, entry);
   }
 
   return (
@@ -127,6 +152,49 @@ export default async function AdminPage() {
           My Profile →
         </Link>
       </div>
+
+      <section className="mt-10">
+        <h2 className="text-xl font-semibold text-brand-ink/90">Course Offerings</h2>
+        <p className="mt-1 text-sm text-brand-ink/60">Who&apos;s enrolled per offering, at a glance.</p>
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {(allOfferings ?? []).map((o) => {
+            const counts = countsByOfferingId.get(o.id) ?? { newCount: 0, reviewCount: 0 };
+            const total = counts.newCount + counts.reviewCount;
+            return (
+              <Link
+                key={o.id}
+                href={`/admin/courses/${o.id}`}
+                className="block rounded-xl border border-brand-gold/40 bg-brand-amber/5 p-4 shadow-sm transition-colors hover:bg-brand-amber/20"
+              >
+                <p className="font-semibold text-brand-ink">{o.courses?.code || o.courses?.name || 'Unknown course'}</p>
+                <p className="mt-0.5 text-sm text-brand-ink/60">
+                  📅 <span className="font-medium text-brand-blue">{formatCourseDateRange(o.start_date, o.end_date)}</span>
+                </p>
+                <p className="mt-0.5 text-sm text-brand-ink/60">
+                  📍 {o.is_online ? 'Online' : o.location || 'TBD'} · Fee: {o.price ? `₱${o.price}` : 'Free'}
+                </p>
+                <p className="mt-0.5 text-sm text-brand-ink/60">
+                  Instructor/s: {offeringInstructorLabel(o) || 'Not assigned'}
+                </p>
+                <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
+                  <span className="rounded-full bg-brand-blue/10 px-2 py-0.5 font-medium text-brand-blue">
+                    New: {counts.newCount}
+                  </span>
+                  <span className="rounded-full bg-brand-flame/10 px-2 py-0.5 font-medium text-brand-flame">
+                    Review: {counts.reviewCount}
+                  </span>
+                  <span className="rounded-full bg-white/70 px-2 py-0.5 font-medium text-brand-ink/50 dark:bg-white/10">
+                    Total: {total}
+                    {o.capacity ? ` / ${o.capacity}` : ''}
+                  </span>
+                </div>
+                <span className="mt-3 inline-block text-xs font-medium text-brand-blue">View Roster →</span>
+              </Link>
+            );
+          })}
+          {!(allOfferings ?? []).length && <p className="text-sm text-brand-ink/50">No course offerings yet.</p>}
+        </div>
+      </section>
 
       <section className="mt-10">
         <div className="flex items-center gap-2">
