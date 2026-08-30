@@ -56,12 +56,12 @@ export default function ReceiptUploadForm({ enrollmentId, studentId }) {
 
   return (
     <form onSubmit={handleSubmit} className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-      <span className="text-brand-ink/60">Issue receipt to student:</span>
+      <span className="whitespace-nowrap text-brand-ink/60">Issue receipt to student:</span>
       <label
         htmlFor={fileInputId}
-        className="cursor-pointer rounded-full border border-brand-blue/30 bg-brand-blue/5 px-3 py-1 text-xs font-medium text-brand-blue transition-colors hover:border-brand-blue hover:bg-brand-blue/10"
+        className="cursor-pointer text-xs font-medium text-brand-blue underline underline-offset-2 hover:text-brand-blue-dark"
       >
-        Choose File to Upload
+        📎 Choose file
       </label>
       <span className="truncate text-xs text-brand-ink/50">
         {file ? file.name : 'No file chosen'} · Max {MAX_UPLOAD_LABEL}
@@ -76,7 +76,7 @@ export default function ReceiptUploadForm({ enrollmentId, studentId }) {
       <button
         type="submit"
         disabled={loading}
-        className="rounded-full border border-brand-blue/30 px-3 py-1 text-xs font-medium text-brand-blue transition-colors hover:bg-brand-blue/10 disabled:opacity-50"
+        className="rounded-full bg-brand-blue px-3 py-1 text-xs font-medium text-white shadow-sm shadow-brand-blue/20 transition-colors hover:bg-brand-blue-dark disabled:opacity-50"
       >
         {loading ? 'Uploading…' : 'Upload Receipt'}
       </button>

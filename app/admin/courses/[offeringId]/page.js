@@ -110,7 +110,12 @@ export default async function AdminOfferingRosterPage({ params }) {
                   {e.enrollment_type === 'review' ? 'Review' : 'New'}
                 </span>
                 {e.referred_by && ` · Referred by ${e.referred_by}`}
-                {e.enrollment_type === 'review' && e.tithe_amount != null && ` · Tithe: ₱${e.tithe_amount}`}
+                {e.enrollment_type === 'review' && e.tithe_amount != null && (
+                  <>
+                    {' · '}
+                    <span className="whitespace-nowrap">Tithe: ₱{e.tithe_amount}</span>
+                  </>
+                )}
                 {e.payment_method && ` · ${PAYMENT_METHOD_LABELS[e.payment_method] ?? e.payment_method}`}
                 {e.paymentProofSignedUrl && (
                   <>
