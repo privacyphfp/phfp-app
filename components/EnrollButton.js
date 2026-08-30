@@ -7,6 +7,7 @@ import { PAYMENT_METHOD_LABELS, PAYMENT_METHODS_NEEDING_PROOF } from '@/lib/paym
 import { exceedsMaxUploadSize, MAX_UPLOAD_LABEL } from '@/lib/fileUpload';
 import { NDA_PARAGRAPHS } from '@/lib/ndaText';
 import { formatCourseDateRange } from '@/lib/dateRange';
+import { BANK_ACCOUNTS, PAYPAL_URL } from '@/lib/paymentInstructions';
 import SignaturePad from '@/components/SignaturePad';
 import SuccessModal from '@/components/SuccessModal';
 import Modal from '@/components/Modal';
@@ -225,6 +226,36 @@ export default function EnrollButton({
             </label>
           ))}
         </div>
+
+        {paymentMethod === 'bank_transfer' && (
+          <div className="mb-3 space-y-2 rounded-lg border border-brand-gold/40 bg-brand-amber/5 p-3 text-xs text-brand-ink/80">
+            <p className="font-medium text-brand-ink">Please transfer to one of these accounts:</p>
+            {BANK_ACCOUNTS.map((acct, i) => (
+              <div key={acct.accountNumber}>
+                {i > 0 && <p className="mb-2 text-center text-[10px] uppercase tracking-wide text-brand-ink/40">— or —</p>}
+                <p className="font-medium text-brand-ink">{acct.bank}</p>
+                <p>{acct.branch}</p>
+                <p>Account Name: {acct.accountName}</p>
+                <p>Account Number: {acct.accountNumber}</p>
+                <p>Swift Code: {acct.swiftCode}</p>
+                {acct.contactNumber && <p>Contact: {acct.contactNumber}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {paymentMethod === 'credit_card' && (
+          <div className="mb-3 rounded-lg border border-brand-gold/40 bg-brand-amber/5 p-3 text-sm text-brand-ink/80">
+            <a
+              href={PAYPAL_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-brand-blue underline underline-offset-2"
+            >
+              Pay via PayPal / Credit Card →
+            </a>
+          </div>
+        )}
 
         {needsProof && (
           <div className="mb-3 text-sm">
