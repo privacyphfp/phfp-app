@@ -366,6 +366,7 @@ export default async function CourseDetailPage({ params }) {
                   <EnrollButton
                     offeringId={o.id}
                     studentId={user.id}
+                    price={o.price}
                     disabled={alreadyEnrolled || !eligible || !profileComplete}
                     label={alreadyEnrolled ? 'Enrolled' : 'Enroll'}
                   />

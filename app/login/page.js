@@ -12,11 +12,22 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
+  const [resent, setResent] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  async function handleResend() {
+    setResent(false);
+    const supabase = createClient();
+    const { error } = await supabase.auth.resend({ type: 'signup', email });
+    if (!error) setResent(true);
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError(null);
+    setNeedsConfirmation(false);
+    setResent(false);
     setLoading(true);
 
     try {
@@ -24,7 +35,11 @@ export default function LoginPage() {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
       if (error) {
-        setError(error.message);
+        if (error.message?.toLowerCase().includes('email not confirmed')) {
+          setNeedsConfirmation(true);
+        } else {
+          setError(error.message);
+        }
         return;
       }
 
@@ -52,6 +67,22 @@ export default function LoginPage() {
       >
         <h1 className="text-2xl font-semibold text-brand-blue-dark">Log In</h1>
         {error && <p className="text-sm text-red-600">{error}</p>}
+        {needsConfirmation && (
+          <div className="rounded-lg border border-brand-flame/30 bg-brand-amber/10 p-3 text-sm text-brand-ink/80">
+            <p>
+              Please confirm your email before logging in. Check your inbox for the confirmation link — and if you
+              don&apos;t see it, check your Spam or Junk folder.
+            </p>
+            <button
+              type="button"
+              onClick={handleResend}
+              className="mt-2 font-medium text-brand-blue underline underline-offset-2"
+            >
+              Resend confirmation email
+            </button>
+            {resent && <p className="mt-1 text-xs text-brand-blue">Sent! Check your inbox (and spam folder).</p>}
+          </div>
+        )}
         <div>
           <label className="block text-sm font-medium text-brand-ink/80">Email</label>
           <input

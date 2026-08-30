@@ -51,7 +51,11 @@ export default function SignupPage() {
         <div className="rounded-2xl border border-brand-gold/40 bg-white/70 p-8 shadow-lg shadow-brand-gold/10 backdrop-blur dark:bg-white/5">
           <h1 className="text-2xl font-semibold text-brand-blue-dark">Check your email</h1>
           <p className="mt-2 text-brand-ink/70">
-            We sent a confirmation link to {email}. Confirm it, then log in.
+            We sent a confirmation link to {email}. Click it to activate your account, then log in.
+          </p>
+          <p className="mt-3 text-sm text-brand-ink/50">
+            Don&apos;t see it in a minute or two? Check your Spam or Junk folder — confirmation emails sometimes land
+            there.
           </p>
         </div>
       </div>

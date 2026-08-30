@@ -28,7 +28,7 @@ export default async function AdminStudentDetailPage({ params }) {
       supabase
         .from('enrollments')
         .select(
-          'id, status, enrolled_at, referred_by, enrollment_type, tithe_amount, course_offerings(start_date, course_id, courses(name))'
+          'id, status, enrolled_at, referred_by, enrollment_type, tithe_amount, nda_signature, nda_agreed_at, course_offerings(start_date, course_id, courses(name))'
         )
         .eq('student_id', id)
         .order('enrolled_at', { ascending: false }),
@@ -164,10 +164,12 @@ export default async function AdminStudentDetailPage({ params }) {
             )}
           </div>
           <div>
-            <div className="text-xs font-medium uppercase tracking-wide text-brand-ink/40">
-              Data Protection &amp; Privacy
-            </div>
-            {student.privacy_signature ? (
+            <div className="text-xs font-medium uppercase tracking-wide text-brand-ink/40">Privacy Notice</div>
+            {student.privacy_notice_agreed_at ? (
+              <p className="mt-1 text-sm text-brand-ink">
+                Acknowledged {new Date(student.privacy_notice_agreed_at).toLocaleDateString()}
+              </p>
+            ) : student.privacy_signature ? (
               <>
                 <img
                   src={student.privacy_signature}
@@ -175,12 +177,32 @@ export default async function AdminStudentDetailPage({ params }) {
                   className="mt-1 h-20 rounded border border-brand-blue/20 bg-white"
                 />
                 <p className="mt-1 text-xs text-brand-ink/50">
-                  Signed {student.privacy_agreed_at ? new Date(student.privacy_agreed_at).toLocaleDateString() : ''}
+                  Signed (legacy) {student.privacy_agreed_at ? new Date(student.privacy_agreed_at).toLocaleDateString() : ''}
                 </p>
               </>
             ) : (
-              <p className="mt-1 text-sm text-brand-flame">Not signed</p>
+              <p className="mt-1 text-sm text-brand-flame">Not acknowledged</p>
             )}
+          </div>
+          <div>
+            <div className="text-xs font-medium uppercase tracking-wide text-brand-ink/40">Religion Data Consent</div>
+            <p className="mt-1 text-sm text-brand-ink">
+              {student.religion_consent_agreed_at
+                ? `Consented ${new Date(student.religion_consent_agreed_at).toLocaleDateString()}`
+                : student.religion
+                  ? 'Religion filled in without consent'
+                  : 'Not applicable'}
+            </p>
+          </div>
+          <div>
+            <div className="text-xs font-medium uppercase tracking-wide text-brand-ink/40">
+              Photo / Publicity Consent
+            </div>
+            <p className="mt-1 text-sm text-brand-ink">
+              {student.photo_consent_agreed_at
+                ? `Consented ${new Date(student.photo_consent_agreed_at).toLocaleDateString()}`
+                : 'Not given'}
+            </p>
           </div>
         </div>
       </section>
@@ -208,6 +230,14 @@ export default async function AdminStudentDetailPage({ params }) {
                   {e.enrollment_type === 'review' ? 'Review' : 'New'}
                 </span>
                 {e.referred_by && ` · Referred by ${e.referred_by}`}
+                {' · '}
+                {e.nda_signature ? (
+                  <span className="text-brand-blue">
+                    NDA signed {e.nda_agreed_at ? new Date(e.nda_agreed_at).toLocaleDateString() : ''}
+                  </span>
+                ) : (
+                  <span className="text-brand-flame">NDA not signed</span>
+                )}
               </div>
               {e.enrollment_type === 'review' && (
                 <TitheAmountForm enrollmentId={e.id} initialAmount={e.tithe_amount} />

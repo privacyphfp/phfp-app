@@ -3,6 +3,8 @@ import { requireProfile } from '@/lib/auth';
 import { ADMIN_ROLES } from '@/lib/roles';
 import { formatInstructorName } from '@/lib/formatInstructor';
 import { signReceiptUrls } from '@/lib/receiptUrl';
+import { signPaymentProofUrls } from '@/lib/paymentProofUrl';
+import { PAYMENT_METHOD_LABELS } from '@/lib/paymentMethods';
 import PaymentVerifyForm from '@/components/PaymentVerifyForm';
 import AttendanceStatusForm from '@/components/AttendanceStatusForm';
 import ReceiptUploadForm from '@/components/ReceiptUploadForm';
@@ -34,12 +36,15 @@ export default async function AdminOfferingRosterPage({ params }) {
   const { data: enrollments } = await supabase
     .from('enrollments')
     .select(
-      'id, status, enrollment_type, referred_by, tithe_amount, amount_paid, payment_verified, invoice_number, payment_date, receipt_url, student_id, profiles(first_name, last_name, full_name, email)'
+      'id, status, enrollment_type, referred_by, tithe_amount, amount_paid, payment_verified, invoice_number, payment_date, receipt_url, payment_method, payment_proof_url, student_id, profiles(first_name, last_name, full_name, email)'
     )
     .eq('course_offering_id', offeringId)
     .order('enrolled_at');
 
-  const enrollmentsWithReceipts = await signReceiptUrls(supabase, enrollments ?? []);
+  const enrollmentsWithReceipts = await signPaymentProofUrls(
+    supabase,
+    await signReceiptUrls(supabase, enrollments ?? [])
+  );
 
   let instructor = null;
   if (offering.instructor_id) {
@@ -102,6 +107,20 @@ export default async function AdminOfferingRosterPage({ params }) {
                 </span>
                 {e.referred_by && ` · Referred by ${e.referred_by}`}
                 {e.enrollment_type === 'review' && e.tithe_amount != null && ` · Tithe: ₱${e.tithe_amount}`}
+                {e.payment_method && ` · ${PAYMENT_METHOD_LABELS[e.payment_method] ?? e.payment_method}`}
+                {e.paymentProofSignedUrl && (
+                  <>
+                    {' · '}
+                    <a
+                      href={e.paymentProofSignedUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-brand-blue underline underline-offset-2"
+                    >
+                      View proof of payment
+                    </a>
+                  </>
+                )}
               </div>
 
               <PaymentVerifyForm
