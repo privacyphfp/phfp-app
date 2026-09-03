@@ -1,6 +1,13 @@
 @import "tailwindcss";
 
+/* Always light — the app never adds a .dark class anywhere, so this
+   keeps every `dark:` utility from ever activating off the visitor's
+   OS/browser color-scheme preference (Tailwind v4 defaults dark: to a
+   prefers-color-scheme media query; this switches it to class-based). */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
+  color-scheme: light;
   --background: #fffbef;
   --foreground: #241c0a;
 
@@ -31,14 +38,6 @@
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0e1826;
-    --foreground: #f7f0da;
-    --brand-cream: #16233a;
-  }
 }
 
 body {
