@@ -60,23 +60,43 @@ export default function PushNotificationToggle() {
         return;
       }
 
-      // On by default: if they've never been asked and haven't blocked
-      // it, turn notifications on automatically instead of waiting for
-      // them to find and click a button — someone who forgets to opt in
-      // just never hears about anything. Already-denied is left alone;
-      // browsers won't re-prompt for that anyway, only the person can
-      // undo it from their own browser's site settings.
       if (Notification.permission === 'denied') {
         setBlocked(true);
         return;
       }
+
+      // On by default: the FIRST time this browser ever lands here, ask
+      // automatically instead of waiting for them to find and click a
+      // button — someone who forgets to opt in just never hears about
+      // anything. Only ever auto-prompted once per browser though (see
+      // the localStorage flag below) — if they ignored/dismissed it that
+      // one time, re-popping the native prompt on every single visit
+      // would just be nagging, so after that it's back to a plain
+      // visible button they can click on their own terms.
+      let alreadyPrompted = true;
+      try {
+        alreadyPrompted = localStorage.getItem('phfp-push-prompted') === '1';
+      } catch {
+        // Storage can throw (private browsing, blocked cookies, etc.) —
+        // treat as "already prompted" so we fail toward the safer,
+        // less-intrusive manual-button path instead of retrying forever.
+      }
+      if (alreadyPrompted) return;
+
       try {
         const success = await subscribe();
         setEnabled(success);
       } catch {
-        // Silent — this runs unprompted on every dashboard visit until
-        // it succeeds once, so a transient failure shouldn't show an
-        // error message unprompted. The manual button below still works.
+        // Silent — a transient failure on an unprompted attempt
+        // shouldn't surface an error message out of nowhere. The manual
+        // button below still works.
+      } finally {
+        try {
+          localStorage.setItem('phfp-push-prompted', '1');
+        } catch {
+          // Ignored — worst case we auto-prompt again next visit, which
+          // is no worse than before this change.
+        }
       }
     })();
   }, []);
